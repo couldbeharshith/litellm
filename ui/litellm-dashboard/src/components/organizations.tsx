@@ -370,27 +370,19 @@ const OrganizationsTable: React.FC<OrganizationsTableProps> = ({
                                       <TableCell>
                                         {userRole === "Admin" && (
                                           <>
-                                            <Tooltip title="Edit organization">
-                                              {" "}
-                                              <Icon
-                                                icon={PencilAltIcon}
-                                                size="sm"
-                                                className="cursor-pointer hover:text-blue-600"
-                                                onClick={() => {
-                                                  setSelectedOrgId(org.organization_id);
-                                                  setEditOrg(true);
-                                                }}
-                                              />
-                                            </Tooltip>
-                                            <Tooltip title="Delete organization">
-                                              {" "}
-                                              <Icon
-                                                onClick={() => handleDelete(org.organization_id)}
-                                                icon={TrashIcon}
-                                                size="sm"
-                                                className="cursor-pointer hover:text-red-600"
-                                              />
-                                            </Tooltip>
+                                            <Icon
+                                              icon={PencilAltIcon}
+                                              size="sm"
+                                              onClick={() => {
+                                                setSelectedOrgId(org.organization_id);
+                                                setEditOrg(true);
+                                              }}
+                                            />
+                                            <Icon
+                                              onClick={() => handleDelete(org.organization_id)}
+                                              icon={TrashIcon}
+                                              size="sm"
+                                            />
                                           </>
                                         )}
                                       </TableCell>

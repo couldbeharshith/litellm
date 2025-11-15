@@ -3,7 +3,6 @@ import { Modal, Form, Input, Button as Button2, Select } from "antd";
 import { Text, TextInput } from "@tremor/react";
 import { getSSOSettings, updateSSOSettings } from "./networking";
 import NotificationsManager from "./molecules/notifications_manager";
-import { parseErrorMessage } from "./shared/errorUtils";
 
 interface SSOModalsProps {
   isAddSSOModalVisible: boolean;
@@ -43,8 +42,8 @@ const ssoProviderConfigs: Record<string, SSOProviderConfig> = {
       google_client_secret: "GOOGLE_CLIENT_SECRET",
     },
     fields: [
-      { label: "Google Client ID", name: "google_client_id" },
-      { label: "Google Client Secret", name: "google_client_secret" },
+      { label: "GOOGLE CLIENT ID", name: "google_client_id" },
+      { label: "GOOGLE CLIENT SECRET", name: "google_client_secret" },
     ],
   },
   microsoft: {
@@ -54,9 +53,9 @@ const ssoProviderConfigs: Record<string, SSOProviderConfig> = {
       microsoft_tenant: "MICROSOFT_TENANT",
     },
     fields: [
-      { label: "Microsoft Client ID", name: "microsoft_client_id" },
-      { label: "Microsoft Client Secret", name: "microsoft_client_secret" },
-      { label: "Microsoft Tenant", name: "microsoft_tenant" },
+      { label: "MICROSOFT CLIENT ID", name: "microsoft_client_id" },
+      { label: "MICROSOFT CLIENT SECRET", name: "microsoft_client_secret" },
+      { label: "MICROSOFT TENANT", name: "microsoft_tenant" },
     ],
   },
   okta: {
@@ -68,18 +67,18 @@ const ssoProviderConfigs: Record<string, SSOProviderConfig> = {
       generic_userinfo_endpoint: "GENERIC_USERINFO_ENDPOINT",
     },
     fields: [
-      { label: "Generic Client ID", name: "generic_client_id" },
-      { label: "Generic Client Secret", name: "generic_client_secret" },
+      { label: "GENERIC CLIENT ID", name: "generic_client_id" },
+      { label: "GENERIC CLIENT SECRET", name: "generic_client_secret" },
       {
-        label: "Authorization Endpoint",
+        label: "AUTHORIZATION ENDPOINT",
         name: "generic_authorization_endpoint",
-        placeholder: "https://your-domain/authorize",
+        placeholder: "https://your-okta-domain/authorize",
       },
-      { label: "Token Endpoint", name: "generic_token_endpoint", placeholder: "https://your-domain/token" },
+      { label: "TOKEN ENDPOINT", name: "generic_token_endpoint", placeholder: "https://your-okta-domain/token" },
       {
-        label: "Userinfo Endpoint",
+        label: "USERINFO ENDPOINT",
         name: "generic_userinfo_endpoint",
-        placeholder: "https://your-domain/userinfo",
+        placeholder: "https://your-okta-domain/userinfo",
       },
     ],
   },
@@ -92,11 +91,11 @@ const ssoProviderConfigs: Record<string, SSOProviderConfig> = {
       generic_userinfo_endpoint: "GENERIC_USERINFO_ENDPOINT",
     },
     fields: [
-      { label: "Generic Client ID", name: "generic_client_id" },
-      { label: "Generic Client Secret", name: "generic_client_secret" },
-      { label: "Authorization Endpoint", name: "generic_authorization_endpoint" },
-      { label: "Token Endpoint", name: "generic_token_endpoint" },
-      { label: "Userinfo Endpoint", name: "generic_userinfo_endpoint" },
+      { label: "GENERIC CLIENT ID", name: "generic_client_id" },
+      { label: "GENERIC CLIENT SECRET", name: "generic_client_secret" },
+      { label: "AUTHORIZATION ENDPOINT", name: "generic_authorization_endpoint" },
+      { label: "TOKEN ENDPOINT", name: "generic_token_endpoint" },
+      { label: "USERINFO ENDPOINT", name: "generic_userinfo_endpoint" },
     ],
   },
 };
@@ -183,8 +182,9 @@ const SSOModals: React.FC<SSOModalsProps> = ({
 
       // Continue with the original flow (show instructions)
       handleShowInstructions(formValues);
-    } catch (error: unknown) {
-      NotificationsManager.fromBackend("Failed to save SSO settings: " + parseErrorMessage(error));
+    } catch (error) {
+      console.error("Failed to save SSO settings:", error);
+      NotificationsManager.fromBackend("Failed to save SSO settings");
     }
   };
 
@@ -282,12 +282,7 @@ const SSOModals: React.FC<SSOModalsProps> = ({
                           style={{ height: 24, width: 24, marginRight: 12, objectFit: "contain" }}
                         />
                       )}
-                      <span>
-                        {value.toLowerCase() === "okta"
-                          ? "Okta / Auth0"
-                          : value.charAt(0).toUpperCase() + value.slice(1)}{" "}
-                        SSO
-                      </span>
+                      <span>{value.charAt(0).toUpperCase() + value.slice(1)} SSO</span>
                     </div>
                   </Select.Option>
                 ))}
@@ -312,7 +307,7 @@ const SSOModals: React.FC<SSOModalsProps> = ({
               <TextInput />
             </Form.Item>
             <Form.Item
-              label="Proxy Base URL"
+              label="PROXY BASE URL"
               name="proxy_base_url"
               normalize={(value) => value?.trim()}
               rules={[
@@ -321,18 +316,9 @@ const SSOModals: React.FC<SSOModalsProps> = ({
                   pattern: /^https?:\/\/.+/,
                   message: "URL must start with http:// or https://",
                 },
-                {
-                  validator: (_, value) => {
-                    // Only check for trailing slash if the URL starts with http:// or https://
-                    if (value && /^https?:\/\/.+/.test(value) && value.endsWith("/")) {
-                      return Promise.reject("URL must not end with a trailing slash");
-                    }
-                    return Promise.resolve();
-                  },
-                },
               ]}
             >
-              <TextInput placeholder="https://example.com" />
+              <TextInput />
             </Form.Item>
           </>
           <div

@@ -1,6 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Button, Accordion, AccordionHeader, AccordionBody } from "@tremor/react";
-import { getCacheSettingsCall, testCacheConnectionCall, updateCacheSettingsCall } from "../networking";
+import {
+  getCacheSettingsCall,
+  testCacheConnectionCall,
+  updateCacheSettingsCall,
+} from "../networking";
 import NotificationsManager from "../molecules/notifications_manager";
 import RedisTypeSelector from "./RedisTypeSelector";
 import CacheFieldRenderer from "./CacheFieldRenderer";
@@ -20,11 +24,18 @@ const CacheSettings: React.FC<CacheSettingsProps> = ({ accessToken, userRole, us
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
-  const loadCacheSettings = useCallback(async () => {
+  useEffect(() => {
+    if (!accessToken) {
+      return;
+    }
+    loadCacheSettings();
+  }, [accessToken]);
+
+  const loadCacheSettings = async () => {
     try {
       const data = await getCacheSettingsCall(accessToken!);
       console.log("cache settings from API", data);
-
+      
       if (data.fields) {
         setFields(data.fields);
       }
@@ -45,14 +56,7 @@ const CacheSettings: React.FC<CacheSettingsProps> = ({ accessToken, userRole, us
       console.error("Failed to load cache settings:", error);
       NotificationsManager.fromBackend("Failed to load cache settings");
     }
-  }, [accessToken]);
-
-  useEffect(() => {
-    if (!accessToken) {
-      return;
-    }
-    loadCacheSettings();
-  }, [accessToken, loadCacheSettings]);
+  };
 
   const handleTestConnection = async () => {
     if (!accessToken) {
@@ -63,7 +67,7 @@ const CacheSettings: React.FC<CacheSettingsProps> = ({ accessToken, userRole, us
     try {
       const testSettings = gatherFormValues(fields, redisType);
       const result = await testCacheConnectionCall(accessToken, testSettings);
-
+      
       if (result.status === "success") {
         NotificationsManager.success("Cache connection test successful!");
       } else {
@@ -85,9 +89,6 @@ const CacheSettings: React.FC<CacheSettingsProps> = ({ accessToken, userRole, us
     setIsSaving(true);
     try {
       const settingsToSave = gatherFormValues(fields, redisType);
-      if (redisType === "semantic") {
-        settingsToSave.type = "redis-semantic";
-      }
       await updateCacheSettingsCall(accessToken, settingsToSave);
       NotificationsManager.success("Cache settings updated successfully");
       // Reload settings to reflect saved values
@@ -104,8 +105,14 @@ const CacheSettings: React.FC<CacheSettingsProps> = ({ accessToken, userRole, us
     return null;
   }
 
-  const { basicFields, sslFields, cacheManagementFields, gcpFields, clusterFields, sentinelFields, semanticFields } =
-    groupFieldsByCategory(fields, redisType);
+  const {
+    basicFields,
+    sslFields,
+    cacheManagementFields,
+    gcpFields,
+    clusterFields,
+    sentinelFields,
+  } = groupFieldsByCategory(fields, redisType);
 
   return (
     <div className="w-full space-y-8 py-2">
@@ -129,7 +136,13 @@ const CacheSettings: React.FC<CacheSettingsProps> = ({ accessToken, userRole, us
             {basicFields.map((field: any) => {
               if (!field) return null;
               const currentValue = cacheSettings[field.field_name] ?? field.field_default ?? "";
-              return <CacheFieldRenderer key={field.field_name} field={field} currentValue={currentValue} />;
+              return (
+                <CacheFieldRenderer
+                  key={field.field_name}
+                  field={field}
+                  currentValue={currentValue}
+                />
+              );
             })}
           </div>
         </div>
@@ -141,7 +154,13 @@ const CacheSettings: React.FC<CacheSettingsProps> = ({ accessToken, userRole, us
             <div className="grid grid-cols-1 gap-6">
               {clusterFields.map((field: any) => {
                 const currentValue = cacheSettings[field.field_name] ?? field.field_default ?? "";
-                return <CacheFieldRenderer key={field.field_name} field={field} currentValue={currentValue} />;
+                return (
+                  <CacheFieldRenderer
+                    key={field.field_name}
+                    field={field}
+                    currentValue={currentValue}
+                  />
+                );
               })}
             </div>
           </div>
@@ -153,19 +172,13 @@ const CacheSettings: React.FC<CacheSettingsProps> = ({ accessToken, userRole, us
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               {sentinelFields.map((field: any) => {
                 const currentValue = cacheSettings[field.field_name] ?? field.field_default ?? "";
-                return <CacheFieldRenderer key={field.field_name} field={field} currentValue={currentValue} />;
-              })}
-            </div>
-          </div>
-        )}
-
-        {redisType === "semantic" && semanticFields.length > 0 && (
-          <div className="space-y-6 pt-4 border-t border-gray-200">
-            <h4 className="text-sm font-medium text-gray-900">Semantic Configuration</h4>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              {semanticFields.map((field: any) => {
-                const currentValue = cacheSettings[field.field_name] ?? field.field_default ?? "";
-                return <CacheFieldRenderer key={field.field_name} field={field} currentValue={currentValue} />;
+                return (
+                  <CacheFieldRenderer
+                    key={field.field_name}
+                    field={field}
+                    currentValue={currentValue}
+                  />
+                );
               })}
             </div>
           </div>
@@ -186,7 +199,13 @@ const CacheSettings: React.FC<CacheSettingsProps> = ({ accessToken, userRole, us
                     {sslFields.map((field: any) => {
                       if (!field) return null;
                       const currentValue = cacheSettings[field.field_name] ?? field.field_default ?? "";
-                      return <CacheFieldRenderer key={field.field_name} field={field} currentValue={currentValue} />;
+                      return (
+                        <CacheFieldRenderer
+                          key={field.field_name}
+                          field={field}
+                          currentValue={currentValue}
+                        />
+                      );
                     })}
                   </div>
                 </div>
@@ -200,7 +219,13 @@ const CacheSettings: React.FC<CacheSettingsProps> = ({ accessToken, userRole, us
                     {cacheManagementFields.map((field: any) => {
                       if (!field) return null;
                       const currentValue = cacheSettings[field.field_name] ?? field.field_default ?? "";
-                      return <CacheFieldRenderer key={field.field_name} field={field} currentValue={currentValue} />;
+                      return (
+                        <CacheFieldRenderer
+                          key={field.field_name}
+                          field={field}
+                          currentValue={currentValue}
+                        />
+                      );
                     })}
                   </div>
                 </div>
@@ -214,7 +239,13 @@ const CacheSettings: React.FC<CacheSettingsProps> = ({ accessToken, userRole, us
                     {gcpFields.map((field: any) => {
                       if (!field) return null;
                       const currentValue = cacheSettings[field.field_name] ?? field.field_default ?? "";
-                      return <CacheFieldRenderer key={field.field_name} field={field} currentValue={currentValue} />;
+                      return (
+                        <CacheFieldRenderer
+                          key={field.field_name}
+                          field={field}
+                          currentValue={currentValue}
+                        />
+                      );
                     })}
                   </div>
                 </div>
@@ -226,10 +257,29 @@ const CacheSettings: React.FC<CacheSettingsProps> = ({ accessToken, userRole, us
 
       {/* Actions */}
       <div className="border-t border-gray-200 pt-6 flex justify-end gap-3">
-        <Button variant="secondary" size="sm" onClick={handleTestConnection} disabled={isTesting} className="text-sm">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={handleTestConnection}
+          disabled={isTesting}
+          className="text-sm"
+        >
           {isTesting ? "Testing..." : "Test Connection"}
         </Button>
-        <Button size="sm" onClick={handleSaveChanges} disabled={isSaving} className="text-sm font-medium">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => window.location.reload()}
+          className="text-sm"
+        >
+          Reset
+        </Button>
+        <Button
+          size="sm"
+          onClick={handleSaveChanges}
+          disabled={isSaving}
+          className="text-sm font-medium"
+        >
           {isSaving ? "Saving..." : "Save Changes"}
         </Button>
       </div>

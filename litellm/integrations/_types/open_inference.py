@@ -201,10 +201,6 @@ class MessageAttributes:
     """
     The id of the tool call.
     """
-    MESSAGE_REASONING_SUMMARY = "message.reasoning_summary"
-    """
-    The reasoning summary from the model's chain-of-thought process.
-    """
 
 
 class MessageContentAttributes:

@@ -14,9 +14,7 @@
         "audio_speech": "Supports /audio/speech endpoint",
         "moderations": "Supports /moderations endpoint",
         "batches": "Supports /batches endpoint",
-        "rerank": "Supports /rerank endpoint",
-        "ocr": "Supports /ocr endpoint",
-        "search": "Supports /search endpoint"
+        "rerank": "Supports /rerank endpoint"
       }
     }
   },
@@ -194,25 +192,7 @@
         "audio_speech": true,
         "moderations": true,
         "batches": true,
-        "rerank": false,
-        "ocr": true
-      }
-    },
-    "azure_ai/doc-intelligence": {
-      "display_name": "Azure AI Document Intelligence (`azure_ai/doc-intelligence`)",
-      "url": "https://docs.litellm.ai/docs/providers/azure_document_intelligence",
-      "endpoints": {
-        "chat_completions": false,
-        "messages": false,
-        "responses": false,
-        "embeddings": false,
-        "image_generations": false,
-        "audio_transcriptions": false,
-        "audio_speech": false,
-        "moderations": false,
-        "batches": false,
-        "rerank": false,
-        "ocr": true
+        "rerank": false
       }
     },
     "azure_text": {
@@ -455,23 +435,6 @@
         "rerank": false
       }
     },
-    "dataforseo": {
-      "display_name": "DataForSEO (`dataforseo`)",
-      "url": "https://docs.litellm.ai/docs/search/dataforseo",
-      "endpoints": {
-        "chat_completions": false,
-        "messages": false,
-        "responses": false,
-        "embeddings": false,
-        "image_generations": false,
-        "audio_transcriptions": false,
-        "audio_speech": false,
-        "moderations": false,
-        "batches": false,
-        "rerank": false,
-        "search": true
-      }
-    },
     "datarobot": {
       "display_name": "DataRobot (`datarobot`)",
       "url": "https://docs.litellm.ai/docs/providers/datarobot",
@@ -552,23 +515,6 @@
         "rerank": false
       }
     },
-    "exa_ai": {
-      "display_name": "Exa AI (`exa_ai`)",
-      "url": "https://docs.litellm.ai/docs/search/exa_ai",
-      "endpoints": {
-        "chat_completions": false,
-        "messages": false,
-        "responses": false,
-        "embeddings": false,
-        "image_generations": false,
-        "audio_transcriptions": false,
-        "audio_speech": false,
-        "moderations": false,
-        "batches": false,
-        "rerank": false,
-        "search": true
-      }
-    },
     "empower": {
       "display_name": "Empower (`empower`)",
       "url": "https://docs.litellm.ai/docs/providers/empower",
@@ -631,23 +577,6 @@
         "moderations": false,
         "batches": false,
         "rerank": false
-      }
-    },
-    "firecrawl": {
-      "display_name": "Firecrawl (`firecrawl`)",
-      "url": "https://docs.litellm.ai/docs/search/firecrawl",
-      "endpoints": {
-        "chat_completions": false,
-        "messages": false,
-        "responses": false,
-        "embeddings": false,
-        "image_generations": false,
-        "audio_transcriptions": false,
-        "audio_speech": false,
-        "moderations": false,
-        "batches": false,
-        "rerank": false,
-        "search": true
       }
     },
     "friendliai": {
@@ -727,8 +656,7 @@
         "audio_speech": false,
         "moderations": false,
         "batches": false,
-        "rerank": false,
-        "ocr": true
+        "rerank": false
       }
     },
     "gemini": {
@@ -1016,8 +944,7 @@
         "audio_speech": false,
         "moderations": false,
         "batches": false,
-        "rerank": false,
-        "ocr": true
+        "rerank": false
       }
     },
     "moonshot": {
@@ -1260,23 +1187,6 @@
         "rerank": false
       }
     },
-    "parallel_ai": {
-      "display_name": "Parallel AI (`parallel_ai`)",
-      "url": "https://docs.litellm.ai/docs/search/parallel_ai",
-      "endpoints": {
-        "chat_completions": false,
-        "messages": false,
-        "responses": false,
-        "embeddings": false,
-        "image_generations": false,
-        "audio_transcriptions": false,
-        "audio_speech": false,
-        "moderations": false,
-        "batches": false,
-        "rerank": false,
-        "search": true
-      }
-    },
     "perplexity": {
       "display_name": "Perplexity AI (`perplexity`)",
       "url": "https://docs.litellm.ai/docs/providers/perplexity",
@@ -1290,8 +1200,7 @@
         "audio_speech": false,
         "moderations": false,
         "batches": false,
-        "rerank": false,
-        "search": true
+        "rerank": false
       }
     },
     "petals": {
@@ -1358,23 +1267,6 @@
         "rerank": false
       }
     },
-    "runwayml": {
-      "display_name": "RunwayML (`runwayml`)",
-      "url": "https://docs.litellm.ai/docs/providers/runwayml/videos",
-      "endpoints": {
-        "chat_completions": false,
-        "messages": false,
-        "responses": false,
-        "embeddings": false,
-        "image_generations": true,
-        "audio_transcriptions": false,
-        "audio_speech": true,
-        "moderations": false,
-        "batches": false,
-        "rerank": false,
-        "video_generations": true
-      }
-    },
     "sagemaker_chat": {
       "display_name": "Sagemaker Chat (`sagemaker_chat`)",
       "url": "https://docs.litellm.ai/docs/providers/aws_sagemaker",
@@ -1389,23 +1281,6 @@
         "moderations": false,
         "batches": false,
         "rerank": false
-      }
-    },
-    "searxng": {
-      "display_name": "SearXNG (`searxng`)",
-      "url": "https://docs.litellm.ai/docs/search/searxng",
-      "endpoints": {
-        "chat_completions": false,
-        "messages": false,
-        "responses": false,
-        "embeddings": false,
-        "image_generations": false,
-        "audio_transcriptions": false,
-        "audio_speech": false,
-        "moderations": false,
-        "batches": false,
-        "rerank": false,
-        "search": true
       }
     },
     "sambanova": {
@@ -1502,23 +1377,6 @@
         "moderations": false,
         "batches": false,
         "rerank": false
-      }
-    },
-    "tavily": {
-      "display_name": "Tavily (`tavily`)",
-      "url": "https://docs.litellm.ai/docs/search/tavily",
-      "endpoints": {
-        "chat_completions": false,
-        "messages": false,
-        "responses": false,
-        "embeddings": false,
-        "image_generations": false,
-        "audio_transcriptions": false,
-        "audio_speech": false,
-        "moderations": false,
-        "batches": false,
-        "rerank": false,
-        "search": true
       }
     },
     "triton": {

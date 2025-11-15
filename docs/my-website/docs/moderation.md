@@ -22,19 +22,10 @@ response = moderation(
 
 For `/moderations` endpoint, there is **no need to specify `model` in the request or on the litellm config.yaml**
 
-
-1. Setup config.yaml
-```yaml
-model_list:
-  - model_name: text-moderation-stable
-    litellm_params:
-      model: openai/omni-moderation-latest
-```
-
-2. Start litellm proxy server 
+Start litellm proxy server 
 
 ```
-litellm --config /path/to/config.yaml
+litellm
 ```
 
 
@@ -50,7 +41,7 @@ client = OpenAI(api_key="<proxy-api-key>", base_url="http://0.0.0.0:4000")
 
 response = client.moderations.create(
     input="hello from litellm",
-    model="text-moderation-stable"
+    model="text-moderation-stable" # optional, defaults to `omni-moderation-latest`
 )
 
 print(response)

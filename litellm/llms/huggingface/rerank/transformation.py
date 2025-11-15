@@ -60,12 +60,7 @@ class HuggingFaceRerankConfig(BaseRerankConfig):
         else:
             return "https://api-inference.huggingface.co"
 
-    def get_complete_url(
-        self, 
-        api_base: Optional[str], 
-        model: str,
-        optional_params: Optional[dict] = None,
-    ) -> str:
+    def get_complete_url(self, api_base: Optional[str], model: str) -> str:
         """
         Get the complete URL for the API call, including the /rerank suffix if necessary.
         """
@@ -122,7 +117,6 @@ class HuggingFaceRerankConfig(BaseRerankConfig):
         headers: dict,
         model: str,
         api_key: Optional[str] = None,
-        optional_params: Optional[dict] = None,
         api_base: Optional[str] = None,
     ) -> dict:
         # Get API credentials

@@ -216,8 +216,9 @@ const TopKeyView: React.FC<TopKeyViewProps> = ({
             yAxisWidth={120}
             tickGap={5}
             layout="vertical"
+            showXAxis={false}
             showLegend={false}
-            valueFormatter={(value) => `$${formatNumberWithCommas(value, 2)}`}
+            valueFormatter={(value) => (value ? `$${formatNumberWithCommas(value, 2)}` : "No Key Alias")}
             onValueChange={(item) => handleKeyClick(item)}
             showTooltip={true}
             customTooltip={(props) => {

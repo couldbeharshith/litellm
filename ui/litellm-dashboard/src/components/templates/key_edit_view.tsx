@@ -1,22 +1,21 @@
-import GuardrailSelector from "@/components/guardrails/GuardrailSelector";
-import { TextInput, Button as TremorButton } from "@tremor/react";
-import { Form, Input, Select, Tooltip } from "antd";
-import { useEffect, useState } from "react";
-import { mapInternalToDisplayNames } from "../callback_info_helpers";
-import KeyLifecycleSettings from "../common_components/KeyLifecycleSettings";
-import PassThroughRoutesSelector from "../common_components/PassThroughRoutesSelector";
-import RateLimitTypeFormItem from "../common_components/RateLimitTypeFormItem";
-import { extractLoggingSettings, formatMetadataForDisplay, stripTagsFromMetadata } from "../key_info_utils";
+import React, { useState, useEffect } from "react";
+import { Form, Input, Select, Button as AntdButton, Tooltip } from "antd";
+import { Button as TremorButton, TextInput } from "@tremor/react";
 import { KeyResponse } from "../key_team_helpers/key_list";
+import { fetchTeamModels } from "../organisms/create_key_button";
+import { modelAvailableCall, getPromptsList } from "../networking";
+import NumericalInput from "../shared/numerical_input";
+import VectorStoreSelector from "../vector_store_management/VectorStoreSelector";
 import MCPServerSelector from "../mcp_server_management/MCPServerSelector";
 import MCPToolPermissions from "../mcp_server_management/MCPToolPermissions";
-import NotificationsManager from "../molecules/notifications_manager";
-import { fetchMCPAccessGroups, getPromptsList, modelAvailableCall, tagListCall } from "../networking";
-import { fetchTeamModels } from "../organisms/create_key_button";
-import NumericalInput from "../shared/numerical_input";
-import { Tag } from "../tag_management/types";
 import EditLoggingSettings from "../team/EditLoggingSettings";
-import VectorStoreSelector from "../vector_store_management/VectorStoreSelector";
+import { extractLoggingSettings, formatMetadataForDisplay } from "../key_info_utils";
+import { fetchMCPAccessGroups } from "../networking";
+import { mapInternalToDisplayNames } from "../callback_info_helpers";
+import GuardrailSelector from "@/components/guardrails/GuardrailSelector";
+import KeyLifecycleSettings from "../common_components/KeyLifecycleSettings";
+import RateLimitTypeFormItem from "../common_components/RateLimitTypeFormItem";
+import PassThroughRoutesSelector from "../common_components/PassThroughRoutesSelector";
 
 interface KeyEditViewProps {
   keyData: KeyResponse;
@@ -82,7 +81,6 @@ export function KeyEditView({
   const [form] = Form.useForm();
   const [userModels, setUserModels] = useState<string[]>([]);
   const [promptsList, setPromptsList] = useState<string[]>([]);
-  const [tagsList, setTagsList] = useState<Record<string, Tag>>({});
   const team = teams?.find((team) => team.team_id === keyData.team_id);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [mcpAccessGroups, setMcpAccessGroups] = useState<string[]>([]);
@@ -162,10 +160,9 @@ export function KeyEditView({
     ...keyData,
     token: keyData.token || keyData.token_id,
     budget_duration: getBudgetDuration(keyData.budget_duration),
-    metadata: formatMetadataForDisplay(stripTagsFromMetadata(keyData.metadata)),
+    metadata: formatMetadataForDisplay(keyData.metadata),
     guardrails: keyData.metadata?.guardrails,
     prompts: keyData.metadata?.prompts,
-    tags: keyData.metadata?.tags,
     vector_stores: keyData.object_permission?.vector_stores || [],
     mcp_servers_and_groups: {
       servers: keyData.object_permission?.mcp_servers || [],
@@ -186,10 +183,9 @@ export function KeyEditView({
       ...keyData,
       token: keyData.token || keyData.token_id,
       budget_duration: getBudgetDuration(keyData.budget_duration),
-      metadata: formatMetadataForDisplay(stripTagsFromMetadata(keyData.metadata)),
+      metadata: formatMetadataForDisplay(keyData.metadata),
       guardrails: keyData.metadata?.guardrails,
       prompts: keyData.metadata?.prompts,
-      tags: keyData.metadata?.tags,
       vector_stores: keyData.object_permission?.vector_stores || [],
       mcp_servers_and_groups: {
         servers: keyData.object_permission?.mcp_servers || [],
@@ -216,20 +212,6 @@ export function KeyEditView({
       form.setFieldValue("rotation_interval", rotationInterval);
     }
   }, [rotationInterval, form]);
-
-  // Fetch tags for selector
-  useEffect(() => {
-    const fetchTags = async () => {
-      if (!accessToken) return;
-      try {
-        const response = await tagListCall(accessToken);
-        setTagsList(response);
-      } catch (error) {
-        NotificationsManager.fromBackend("Error fetching tags: " + error);
-      }
-    };
-    fetchTags();
-  }, [accessToken]);
 
   console.log("premiumUser:", premiumUser);
 
@@ -388,19 +370,6 @@ export function KeyEditView({
         )}
       </Form.Item>
 
-      <Form.Item label="Tags" name="tags">
-        <Select
-          mode="tags"
-          style={{ width: "100%" }}
-          placeholder="Select or enter tags"
-          options={Object.values(tagsList).map((tag) => ({
-            value: tag.name,
-            label: tag.name,
-            title: tag.description || tag.name,
-          }))}
-        />
-      </Form.Item>
-
       <Form.Item label="Prompts" name="prompts">
         <Tooltip title={!premiumUser ? "Setting prompts by key is a premium feature" : ""} placement="top">
           <Select
@@ -548,9 +517,7 @@ export function KeyEditView({
 
       <div className="sticky z-10 bg-white p-4 border-t border-gray-200 bottom-[-1.5rem] inset-x-[-1.5rem]">
         <div className="flex justify-end items-center gap-2">
-          <TremorButton variant="secondary" onClick={onCancel}>
-            Cancel
-          </TremorButton>
+          <AntdButton onClick={onCancel}>Cancel</AntdButton>
           <TremorButton type="submit">Save Changes</TremorButton>
         </div>
       </div>

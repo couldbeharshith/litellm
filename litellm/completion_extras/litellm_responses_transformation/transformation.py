@@ -538,22 +538,16 @@ class LiteLLMResponsesTransformationHandler(CompletionTransformationBridge):
 
         return cast(List["ALL_RESPONSES_API_TOOL_PARAMS"], responses_tools)
 
-    def _map_reasoning_effort(self, reasoning_effort: Union[str, Dict[str, Any]]) -> Optional[Reasoning]:
-        # If dict is passed, convert it directly to Reasoning object
-        if isinstance(reasoning_effort, dict):
-            return Reasoning(**reasoning_effort)  # type: ignore[typeddict-item]
-
-        # If string is passed, map without summary (default)
-        if reasoning_effort == "none":
-            return Reasoning(effort="none") # type: ignore
-        elif reasoning_effort == "high":
-            return Reasoning(effort="high")
+    def _map_reasoning_effort(self, reasoning_effort: str) -> Optional[Reasoning]:
+        if reasoning_effort == "high":
+            return Reasoning(effort="high", summary="detailed")
         elif reasoning_effort == "medium":
-            return Reasoning(effort="medium")
+            # docs say "summary": "concise" is also an option, but it was rejected in practice, so defaulting "auto"
+            return Reasoning(effort="medium", summary="auto")
         elif reasoning_effort == "low":
-            return Reasoning(effort="low")
+            return Reasoning(effort="low", summary="auto")
         elif reasoning_effort == "minimal":
-            return Reasoning(effort="minimal")
+            return Reasoning(effort="minimal", summary="auto")
         return None
 
     def _map_responses_status_to_finish_reason(self, status: Optional[str]) -> str:
@@ -638,8 +632,8 @@ class OpenAiResponsesToChatCompletionStreamIterator(BaseModelResponseIterator):
                         index=0,
                         type="function",
                         function=ChatCompletionToolCallFunctionChunk(
-                            name=parsed_chunk.get("name", None),
-                            arguments=parsed_chunk.get("arguments", ""),
+                            name=output_item.get("name", None),
+                            arguments=output_item.get("arguments", ""),
                         ),
                     ),
                     is_finished=False,
@@ -684,7 +678,7 @@ class OpenAiResponsesToChatCompletionStreamIterator(BaseModelResponseIterator):
                         index=0,
                         type="function",
                         function=ChatCompletionToolCallFunctionChunk(
-                            name=parsed_chunk.get("name", None),
+                            name=output_item.get("name", None),
                             arguments="",  # responses API sends everything again, we don't
                         ),
                     ),

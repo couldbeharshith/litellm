@@ -1,13 +1,12 @@
-import useAuthorized from "@/app/(dashboard)/hooks/useAuthorized";
-import useTeams from "@/app/(dashboard)/hooks/useTeams";
-import { Team } from "@/components/key_team_helpers/key_list";
+import { Grid, Select, SelectItem, TabPanel, Text } from "@tremor/react";
+import { InfoCircleOutlined } from "@ant-design/icons";
 import { ModelDataTable } from "@/components/model_dashboard/table";
 import { columns } from "@/components/molecules/models/columns";
 import { getDisplayModelName } from "@/components/view_model/model_name_display";
-import { InfoCircleOutlined } from "@ant-design/icons";
-import { PaginationState, Table as TableInstance } from "@tanstack/react-table";
-import { Grid, Select, SelectItem, TabPanel, Text } from "@tremor/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import useTeams from "@/app/(dashboard)/hooks/useTeams";
+import useAuthorized from "@/app/(dashboard)/hooks/useAuthorized";
+import { Table as TableInstance, PaginationState } from "@tanstack/react-table";
 
 type ModelViewMode = "all" | "current_team";
 
@@ -37,7 +36,7 @@ const AllModelsTab = ({
 
   const [modelNameSearch, setModelNameSearch] = useState<string>("");
   const [modelViewMode, setModelViewMode] = useState<ModelViewMode>("current_team");
-  const [currentTeam, setCurrentTeam] = useState<Team | "personal">("personal");
+  const [currentTeam, setCurrentTeam] = useState<string>("personal"); // 'personal' or team_id
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [selectedModelAccessGroupFilter, setSelectedModelAccessGroupFilter] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -72,15 +71,7 @@ const AllModelsTab = ({
         if (currentTeam === "personal") {
           teamAccessMatch = model.model_info?.direct_access === true;
         } else {
-          // Check if model is directly associated with the team via team_ids
-          const directTeamAccess = model.model_info?.access_via_team_ids?.includes(currentTeam.team_id) === true;
-
-          // Check if any of the team's models match the model's access groups
-          const accessGroupMatch =
-            currentTeam.models?.some((teamModel: string) => model.model_info?.access_groups?.includes(teamModel)) ===
-            true;
-
-          teamAccessMatch = directTeamAccess || accessGroupMatch;
+          teamAccessMatch = model.model_info?.access_via_team_ids?.includes(currentTeam) === true;
         }
       }
 
@@ -120,15 +111,8 @@ const AllModelsTab = ({
                   <Select
                     className="w-80"
                     defaultValue="personal"
-                    value={currentTeam === "personal" ? "personal" : currentTeam.team_id}
-                    onValueChange={(value) => {
-                      if (value === "personal") {
-                        setCurrentTeam("personal");
-                      } else {
-                        const team = teams?.find((t) => t.team_id === value);
-                        if (team) setCurrentTeam(team);
-                      }
-                    }}
+                    value={currentTeam}
+                    onValueChange={(value) => setCurrentTeam(value)}
                   >
                     <SelectItem value="personal">
                       <div className="flex items-center gap-2">
@@ -194,8 +178,7 @@ const AllModelsTab = ({
                     ) : (
                       <span>
                         To access these models: Create a Virtual Key and select Team as &quot;
-                        {typeof currentTeam !== "string" ? currentTeam.team_alias || currentTeam.team_id : ""}&quot; on
-                        the{" "}
+                        {currentTeam}&quot; on the{" "}
                         <a
                           href="/public?login=success&page=api-keys"
                           className="text-gray-600 hover:text-gray-800 underline"

@@ -286,8 +286,6 @@ async def test_mcp_allowed_tools_filtering():
             'inputSchema': {'type': 'object', 'properties': {}}
         })()
     ]
-
-    allowed_mcp_servers = ["gitmcp"]
     
     # Test Case 1: MCP tool config with allowed_tools specified
     mcp_tool_config_with_allowed_tools = [
@@ -383,8 +381,8 @@ async def test_mcp_allowed_tools_filtering():
     )
     
     # Then deduplicate the filtered tools
-    filtered_tools_deduplicated, _ = LiteLLM_Proxy_MCP_Handler._deduplicate_mcp_tools(
-        filtered_tools_with_duplicates, []
+    filtered_tools_deduplicated = LiteLLM_Proxy_MCP_Handler._deduplicate_mcp_tools(
+        filtered_tools_with_duplicates
     )
     
     # Should only return 1 tool (the duplicate should be removed)
@@ -397,7 +395,7 @@ async def test_mcp_allowed_tools_filtering():
     print("✓ Test Case 3: duplicate tools are properly deduplicated")
     
     # Test Case 3b: Test standalone deduplication method
-    standalone_deduplicated, _ = LiteLLM_Proxy_MCP_Handler._deduplicate_mcp_tools(mock_mcp_tools_with_duplicates, allowed_mcp_servers)
+    standalone_deduplicated = LiteLLM_Proxy_MCP_Handler._deduplicate_mcp_tools(mock_mcp_tools_with_duplicates)
     
     # Should return 2 unique tools (GitMCP-fetch_litellm_documentation and GitMCP-search_litellm_documentation)
     assert len(standalone_deduplicated) == 2, f"Expected 2 unique tools after standalone deduplication, got {len(standalone_deduplicated)}"
@@ -512,7 +510,7 @@ async def test_streaming_mcp_events_validation():
          patch.object(LiteLLM_Proxy_MCP_Handler, '_execute_tool_calls', new_callable=AsyncMock) as mock_execute_tools:
         
         # Setup MCP mocks
-        mock_get_tools.return_value = (mock_mcp_tools, ["test_server"])
+        mock_get_tools.return_value = mock_mcp_tools
         
         def mock_execute_tool_calls_side_effect(tool_calls, user_api_key_auth):
             """Mock tool execution with realistic results"""
@@ -697,7 +695,7 @@ async def test_streaming_responses_api_with_mcp_tools():
          patch.object(LiteLLM_Proxy_MCP_Handler, '_execute_tool_calls', new_callable=AsyncMock) as mock_execute_tools:
         
         # Setup MCP mocks only
-        mock_get_tools.return_value = (mock_mcp_tools, ["litellm_proxy"])
+        mock_get_tools.return_value = mock_mcp_tools
         
         # Create a dynamic mock that will match the actual tool call ID from the LLM response
         def mock_execute_tool_calls_side_effect(tool_calls, user_api_key_auth):

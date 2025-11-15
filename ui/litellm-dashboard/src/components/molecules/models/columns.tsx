@@ -67,20 +67,14 @@ export const columns = (
                   alt={`${model.provider} logo`}
                   className="w-4 h-4"
                   onError={(e) => {
-                    const target = e.currentTarget as HTMLImageElement;
+                    const target = e.target as HTMLImageElement;
                     const parent = target.parentElement;
-                    if (!parent || !parent.contains(target)) {
-                      return;
-                    }
-
-                    try {
+                    if (parent) {
                       const fallbackDiv = document.createElement("div");
                       fallbackDiv.className =
                         "w-4 h-4 rounded-full bg-gray-200 flex items-center justify-center text-xs";
                       fallbackDiv.textContent = model.provider?.charAt(0) || "-";
                       parent.replaceChild(fallbackDiv, target);
-                    } catch (error) {
-                      console.error("Failed to replace provider logo fallback:", error);
                     }
                   }}
                 />
@@ -296,25 +290,23 @@ export const columns = (
   },
   {
     id: "actions",
-    header: () => <span className="text-sm font-semibold">Actions</span>,
+    header: "",
     cell: ({ row }) => {
       const model = row.original;
       const canEditModel = userRole === "Admin" || model.model_info?.created_by === userID;
       return (
         <div className="flex items-center justify-end gap-2 pr-4">
-          <Tooltip title="Delete model">
-            <Icon
-              icon={TrashIcon}
-              size="sm"
-              onClick={() => {
-                if (canEditModel) {
-                  setSelectedModelId(model.model_info.id);
-                  setEditModel(false);
-                }
-              }}
-              className={!canEditModel ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:text-red-600"}
-            />
-          </Tooltip>
+          <Icon
+            icon={TrashIcon}
+            size="sm"
+            onClick={() => {
+              if (canEditModel) {
+                setSelectedModelId(model.model_info.id);
+                setEditModel(false);
+              }
+            }}
+            className={!canEditModel ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+          />
         </div>
       );
     },

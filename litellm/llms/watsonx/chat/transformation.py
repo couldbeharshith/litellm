@@ -35,7 +35,6 @@ class IBMWatsonXChatConfig(IBMWatsonXMixin, OpenAIGPTConfig):
             "n",
             "presence_penalty",
             "response_format",
-            "reasoning_effort",
         ]
 
     def is_tool_choice_option(self, tool_choice: Optional[Union[str, dict]]) -> bool:
@@ -125,18 +124,16 @@ class IBMWatsonXChatConfig(IBMWatsonXMixin, OpenAIGPTConfig):
             None if model.startswith("deployment/") else api_params["project_id"]
         )
         return payload
-
+    
     @staticmethod
-    def _apply_prompt_template_core(
-        model: str, messages: List[Dict[str, str]], hf_template_fn
-    ) -> Optional[str]:
+    def _apply_prompt_template_core(model: str, messages: List[Dict[str, str]], hf_template_fn) -> Optional[str]:
         """Core logic for applying prompt templates"""
         from litellm.litellm_core_utils.prompt_templates.factory import (
             custom_prompt,
             ibm_granite_pt,
             mistral_instruct_pt,
         )
-
+        
         if WatsonXModelPattern.GRANITE_CHAT.value in model:
             return ibm_granite_pt(messages=messages)
         elif WatsonXModelPattern.IBM_MISTRAL.value in model:
@@ -150,18 +147,9 @@ class IBMWatsonXChatConfig(IBMWatsonXMixin, OpenAIGPTConfig):
         elif WatsonXModelPattern.LLAMA3_INSTRUCT.value in model:
             return custom_prompt(
                 role_dict={
-                    "system": {
-                        "pre_message": "<|start_header_id|>system<|end_header_id|>\n",
-                        "post_message": "<|eot_id|>",
-                    },
-                    "user": {
-                        "pre_message": "<|start_header_id|>user<|end_header_id|>\n",
-                        "post_message": "<|eot_id|>",
-                    },
-                    "assistant": {
-                        "pre_message": "<|start_header_id|>assistant<|end_header_id|>\n",
-                        "post_message": "<|eot_id|>",
-                    },
+                    "system": {"pre_message": "<|start_header_id|>system<|end_header_id|>\n", "post_message": "<|eot_id|>"},
+                    "user": {"pre_message": "<|start_header_id|>user<|end_header_id|>\n", "post_message": "<|eot_id|>"},
+                    "assistant": {"pre_message": "<|start_header_id|>assistant<|end_header_id|>\n", "post_message": "<|eot_id|>"},
                 },
                 messages=messages,
                 initial_prompt_value="<|begin_of_text|>",
@@ -170,9 +158,7 @@ class IBMWatsonXChatConfig(IBMWatsonXMixin, OpenAIGPTConfig):
         return None
 
     @staticmethod
-    async def aapply_prompt_template(
-        model: str, messages: List[Dict[str, str]]
-    ) -> Optional[str]:
+    async def aapply_prompt_template(model: str, messages: List[Dict[str, str]]) -> Optional[str]:
         """Apply prompt template (async version)"""
         import litellm
         from litellm.litellm_core_utils.prompt_templates.factory import (
@@ -218,11 +204,9 @@ class IBMWatsonXChatConfig(IBMWatsonXMixin, OpenAIGPTConfig):
                 final_prompt_value="<|start_header_id|>assistant<|end_header_id|>\n",
             )
         return None
-
+    
     @staticmethod
-    def apply_prompt_template(
-        model: str, messages: List[Dict[str, str]]
-    ) -> Optional[str]:
+    def apply_prompt_template(model: str, messages: List[Dict[str, str]]) -> Optional[str]:
         """Apply prompt template (sync version)"""
         from litellm.litellm_core_utils.prompt_templates.factory import (
             hf_chat_template,
@@ -231,3 +215,4 @@ class IBMWatsonXChatConfig(IBMWatsonXMixin, OpenAIGPTConfig):
         return IBMWatsonXChatConfig._apply_prompt_template_core(
             model=model, messages=messages, hf_template_fn=hf_chat_template
         )
+

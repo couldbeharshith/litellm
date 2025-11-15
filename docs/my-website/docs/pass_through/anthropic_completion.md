@@ -1,7 +1,7 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-# Anthropic Passthrough
+# Anthropic SDK
 
 Pass-through endpoints for Anthropic - call provider-specific endpoint, in native format (no translation).
 

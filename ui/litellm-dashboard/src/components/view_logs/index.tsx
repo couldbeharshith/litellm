@@ -790,34 +790,20 @@ export function RequestViewer({ row }: { row: Row<LogEntry> }) {
     metadata.vector_store_request_metadata.length > 0;
 
   // Extract guardrail information from metadata if available
-  const guardrailInfo = row.original.metadata?.guardrail_information;
-  const guardrailEntries = Array.isArray(guardrailInfo)
-    ? guardrailInfo
-    : guardrailInfo
-    ? [guardrailInfo]
-    : [];
-  const hasGuardrailData = guardrailEntries.length > 0;
+  const hasGuardrailData = row.original.metadata && row.original.metadata.guardrail_information;
 
   // Calculate total masked entities if guardrail data exists
-  const totalMaskedEntities = guardrailEntries.reduce((sum, entry) => {
-    const maskedCounts = entry?.masked_entity_count;
-    if (!maskedCounts) {
-      return sum;
+  const getTotalMaskedEntities = (): number => {
+    if (!hasGuardrailData || !row.original.metadata?.guardrail_information.masked_entity_count) {
+      return 0;
     }
-    return (
-      sum +
-      Object.values(maskedCounts).reduce<number>(
-        (acc, count) => (typeof count === "number" ? acc + count : acc),
-        0,
-      )
+    return Object.values(row.original.metadata.guardrail_information.masked_entity_count).reduce(
+      (sum: number, count: any) => sum + (typeof count === "number" ? count : 0),
+      0,
     );
-  }, 0);
+  };
 
-  const primaryGuardrailLabel = guardrailEntries.length === 1
-    ? guardrailEntries[0]?.guardrail_name ?? "-"
-    : guardrailEntries.length > 1
-    ? `${guardrailEntries.length} guardrails`
-    : "-";
+  const totalMaskedEntities = getTotalMaskedEntities();
 
   return (
     <div className="p-6 bg-gray-50 space-y-6 w-full max-w-full overflow-hidden box-border">
@@ -864,7 +850,7 @@ export function RequestViewer({ row }: { row: Row<LogEntry> }) {
               <div className="flex">
                 <span className="font-medium w-1/3">Guardrail:</span>
                 <div>
-                  <span className="font-mono">{primaryGuardrailLabel}</span>
+                  <span className="font-mono">{row.original.metadata!.guardrail_information.guardrail_name}</span>
                   {totalMaskedEntities > 0 && (
                     <span className="ml-2 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md text-xs font-medium">
                       {totalMaskedEntities} masked
@@ -948,7 +934,7 @@ export function RequestViewer({ row }: { row: Row<LogEntry> }) {
       </div>
 
       {/* Guardrail Data - Show only if present */}
-      {hasGuardrailData && <GuardrailViewer data={guardrailInfo} />}
+      {hasGuardrailData && <GuardrailViewer data={row.original.metadata!.guardrail_information} />}
 
       {/* Vector Store Request Data - Show only if present */}
       {hasVectorStoreData && <VectorStoreViewer data={metadata.vector_store_request_metadata} />}

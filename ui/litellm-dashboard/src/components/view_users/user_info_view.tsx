@@ -33,7 +33,6 @@ interface UserInfo {
   user_id: string;
   user_info: {
     user_email: string | null;
-    user_alias: string | null;
     user_role: string | null;
     teams: any[] | null;
     models: string[] | null;
@@ -139,7 +138,6 @@ export default function UserInfoView({
         user_info: {
           ...userData.user_info,
           user_email: formValues.user_email,
-          user_alias: formValues.user_alias,
           models: formValues.models,
           max_budget: formValues.max_budget,
           budget_duration: formValues.budget_duration,
@@ -345,7 +343,9 @@ export default function UserInfoView({
               <div className="flex justify-between items-center mb-4">
                 <Title>User Settings</Title>
                 {!isEditing && userRole && rolesWithWriteAccess.includes(userRole) && (
-                  <Button onClick={() => setIsEditing(true)}>Edit Settings</Button>
+                  <Button variant="light" onClick={() => setIsEditing(true)}>
+                    Edit Settings
+                  </Button>
                 )}
               </div>
 
@@ -384,11 +384,6 @@ export default function UserInfoView({
                   <div>
                     <Text className="font-medium">Email</Text>
                     <Text>{userData.user_info?.user_email || "Not Set"}</Text>
-                  </div>
-
-                  <div>
-                    <Text className="font-medium">User Alias</Text>
-                    <Text>{userData.user_info?.user_alias || "Not Set"}</Text>
                   </div>
 
                   <div>

@@ -129,12 +129,10 @@ class TestAzureVideoConfig:
         )
         
         headers = {"Authorization": f"Bearer {self.api_key}"}
-        api_base = f"{self.api_base}/openai/v1/videos"
         
-        data, files, url = self.config.transform_video_create_request(
+        data, files = self.config.transform_video_create_request(
             model=self.model,
             prompt="A cinematic shot of a city at night",
-            api_base=api_base,
             video_create_optional_request_params=video_params,
             litellm_params=litellm_params,
             headers=headers
@@ -144,8 +142,6 @@ class TestAzureVideoConfig:
         assert data["seconds"] == 8
         assert data["size"] == "720x1280"
         assert data["model"] == self.model
-        # URL should be returned as-is for Azure
-        assert url == api_base
 
     def test_transform_video_create_response(self):
         """Test video creation response transformation."""
@@ -187,6 +183,7 @@ class TestAzureVideoConfig:
         logging_obj = MagicMock()
         
         result = self.config.transform_video_remix_response(
+            model=self.model,
             raw_response=mock_response,
             logging_obj=logging_obj
         )
@@ -211,6 +208,7 @@ class TestAzureVideoConfig:
         logging_obj = MagicMock()
         
         result = self.config.transform_video_delete_response(
+            model=self.model,
             raw_response=mock_response,
             logging_obj=logging_obj
         )
@@ -228,6 +226,7 @@ class TestAzureVideoConfig:
         logging_obj = MagicMock()
         
         result = self.config.transform_video_content_response(
+            model=self.model,
             raw_response=mock_response,
             logging_obj=logging_obj
         )
@@ -279,15 +278,13 @@ class TestAzureVideoConfig:
         )
         
         headers = {"Authorization": f"Bearer {self.api_key}"}
-        api_base = f"{self.api_base}/openai/v1/videos"
         
         # Mock file existence
         with patch('os.path.exists', return_value=True):
             with patch('builtins.open', mock_open(read_data=b"fake image data")):
-                data, files, url = self.config.transform_video_create_request(
+                data, files = self.config.transform_video_create_request(
                     model=self.model,
                     prompt="A video with reference image",
-                    api_base=api_base,
                     video_create_optional_request_params=video_params,
                     litellm_params=litellm_params,
                     headers=headers
@@ -297,7 +294,6 @@ class TestAzureVideoConfig:
         assert data["seconds"] == 10
         assert len(files) == 1
         assert files[0][0] == "input_reference"
-        assert url == api_base
 
     def test_error_handling_in_response_transformation(self):
         """Test error handling in response transformation methods."""
@@ -378,6 +374,7 @@ class TestAzureVideoConfig:
         logging_obj = MagicMock()
         
         result = self.config.transform_video_remix_response(
+            model=self.model,
             raw_response=mock_response,
             logging_obj=logging_obj
         )

@@ -14,6 +14,7 @@ import { getProviderLogoAndName } from "./provider_info_helpers";
 import Navbar from "./navbar";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import NotificationsManager from "./molecules/notifications_manager";
+// Simple approach without react-markdown dependency
 
 interface ModelGroupInfo {
   model_group: string;

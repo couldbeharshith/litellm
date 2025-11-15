@@ -33,7 +33,7 @@ from litellm.proxy._types import (
     SpendLogsPayload,
 )
 from litellm.types.guardrails import GuardrailEventHooks
-from litellm.types.utils import CallTypes, CallTypesLiteral
+from litellm.types.utils import CallTypes
 
 try:
     import backoff
@@ -796,7 +796,18 @@ class ProxyLogging:
         callback: CustomGuardrail,
         data: dict,
         user_api_key_dict: Optional[UserAPIKeyAuth],
-        call_type: CallTypesLiteral,
+        call_type: Literal[
+            "completion",
+            "text_completion",
+            "embeddings",
+            "image_generation",
+            "moderation",
+            "audio_transcription",
+            "pass_through_endpoint",
+            "rerank",
+            "mcp_call",
+            "anthropic_messages",
+        ],
     ) -> Optional[dict]:
         """
         Process a guardrail callback during pre-call hook.
@@ -854,7 +865,18 @@ class ProxyLogging:
         self,
         user_api_key_dict: UserAPIKeyAuth,
         data: None,
-        call_type: CallTypesLiteral,
+        call_type: Literal[
+            "completion",
+            "text_completion",
+            "embeddings",
+            "image_generation",
+            "moderation",
+            "audio_transcription",
+            "pass_through_endpoint",
+            "rerank",
+            "mcp_call",
+            "anthropic_messages",
+        ],
     ) -> None:
         pass
 
@@ -863,7 +885,18 @@ class ProxyLogging:
         self,
         user_api_key_dict: UserAPIKeyAuth,
         data: dict,
-        call_type: CallTypesLiteral,
+        call_type: Literal[
+            "completion",
+            "text_completion",
+            "embeddings",
+            "image_generation",
+            "moderation",
+            "audio_transcription",
+            "pass_through_endpoint",
+            "rerank",
+            "mcp_call",
+            "anthropic_messages",
+        ],
     ) -> dict:
         pass
 
@@ -871,7 +904,18 @@ class ProxyLogging:
         self,
         user_api_key_dict: UserAPIKeyAuth,
         data: Optional[dict],
-        call_type: CallTypesLiteral,
+        call_type: Literal[
+            "completion",
+            "text_completion",
+            "embeddings",
+            "image_generation",
+            "moderation",
+            "audio_transcription",
+            "pass_through_endpoint",
+            "rerank",
+            "mcp_call",
+            "anthropic_messages",
+        ],
     ) -> Optional[dict]:
         """
         Allows users to modify/reject the incoming request to the proxy, without having to deal with parsing Request body.
@@ -941,11 +985,7 @@ class ProxyLogging:
                     )
                 else:
                     _callback = callback  # type: ignore
-                if (
-                    _callback is not None
-                    and isinstance(_callback, CustomGuardrail)
-                    and data is not None
-                ):
+                if _callback is not None and isinstance(_callback, CustomGuardrail) and data is not None:
                     result = await self._process_guardrail_callback(
                         callback=_callback,
                         data=data,
@@ -970,7 +1010,7 @@ class ProxyLogging:
                         user_api_key_dict=user_api_key_dict,
                         cache=self.call_details["user_api_key_cache"],
                         data=data,  # type: ignore
-                        call_type=call_type,  # type: ignore
+                        call_type=call_type,
                     )
                     if response is not None:
                         data = await self.process_pre_call_hook_response(
@@ -998,66 +1038,62 @@ class ProxyLogging:
         self,
         data: dict,
         user_api_key_dict: Optional[UserAPIKeyAuth],
-        call_type: CallTypesLiteral,
+        call_type: Literal[
+            "completion",
+            "responses",
+            "embeddings",
+            "image_generation",
+            "moderation",
+            "audio_transcription",
+            "mcp_call",
+        ],
     ):
         """
-        Runs the CustomGuardrail's async_moderation_hook() in parallel
+        Runs the CustomGuardrail's async_moderation_hook()
         """
-        # Step 1: Collect all guardrail tasks to run in parallel
-        guardrail_tasks = []
-
         for callback in litellm.callbacks:
-            if isinstance(callback, CustomGuardrail):
-                ################################################################
-                # Check if guardrail should be run for GuardrailEventHooks.during_call hook
-                ################################################################
+            try:
+                if isinstance(callback, CustomGuardrail):
+                    ################################################################
+                    # Check if guardrail should be run for GuardrailEventHooks.during_call hook
+                    ################################################################
 
-                # V1 implementation - backwards compatibility
-                if callback.event_hook is None and hasattr(
-                    callback, "moderation_check"
-                ):
-                    if callback.moderation_check == "pre_call":  # type: ignore
-                        return
-                else:
-                    # Main - V2 Guardrails implementation
-                    from litellm.types.guardrails import GuardrailEventHooks
-
-                    event_type = GuardrailEventHooks.during_call
-                    if call_type == "mcp_call":
-                        event_type = GuardrailEventHooks.during_mcp_call
-
-                    if (
-                        callback.should_run_guardrail(
-                            data=data, event_type=event_type
-                        )
-                        is not True
+                    # V1 implementation - backwards compatibility
+                    if callback.event_hook is None and hasattr(
+                        callback, "moderation_check"
                     ):
-                        continue
-                # Convert user_api_key_dict to proper format for async_moderation_hook
-                if call_type == "mcp_call":
-                    user_api_key_auth_dict = (
-                        self._convert_user_api_key_auth_to_dict(user_api_key_dict)
-                    )
-                else:
-                    user_api_key_auth_dict = user_api_key_dict
+                        if callback.moderation_check == "pre_call":  # type: ignore
+                            return
+                    else:
+                        # Main - V2 Guardrails implementation
+                        from litellm.types.guardrails import GuardrailEventHooks
 
-                # Add task to list for parallel execution
-                guardrail_tasks.append(
-                    callback.async_moderation_hook(
+                        event_type = GuardrailEventHooks.during_call
+                        if call_type == "mcp_call":
+                            event_type = GuardrailEventHooks.during_mcp_call
+
+                        if (
+                            callback.should_run_guardrail(
+                                data=data, event_type=event_type
+                            )
+                            is not True
+                        ):
+                            continue
+                    # Convert user_api_key_dict to proper format for async_moderation_hook
+                    if call_type == "mcp_call":
+                        user_api_key_auth_dict = (
+                            self._convert_user_api_key_auth_to_dict(user_api_key_dict)
+                        )
+                    else:
+                        user_api_key_auth_dict = user_api_key_dict
+
+                    await callback.async_moderation_hook(
                         data=data,
                         user_api_key_dict=user_api_key_auth_dict,  # type: ignore
-                        call_type=call_type,  # type: ignore
+                        call_type=call_type,
                     )
-                )
-
-        # Step 2: Run all guardrail tasks in parallel
-        if guardrail_tasks:
-            try:
-                await asyncio.gather(*guardrail_tasks)
             except Exception as e:
-                # If any guardrail raises an exception, it will propagate here
                 raise e
-
         return data
 
     async def failed_tracking_alert(
@@ -3653,16 +3689,6 @@ def is_known_model(model: Optional[str], llm_router: Optional[Router]) -> bool:
         is_in_list = True
 
     return is_in_list
-
-
-def is_known_vector_store_index(index_name: str) -> bool:
-    """
-    Returns True if the vector store index is in the llm_router vector store indexes
-    """
-
-    if litellm.vector_store_index_registry is None:
-        return False
-    return index_name in litellm.vector_store_index_registry.get_vector_store_indexes()
 
 
 def join_paths(base_path: str, route: str) -> str:

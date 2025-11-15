@@ -143,6 +143,7 @@ const CredentialsPanel: React.FC<CredentialsPanelProps> = ({
             <TableRow>
               <TableHeaderCell>Credential Name</TableHeaderCell>
               <TableHeaderCell>Provider</TableHeaderCell>
+              <TableHeaderCell>Description</TableHeaderCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -159,6 +160,7 @@ const CredentialsPanel: React.FC<CredentialsPanelProps> = ({
                   <TableCell>
                     {renderProviderBadge((credential.credential_info?.custom_llm_provider as string) || "-")}
                   </TableCell>
+                  <TableCell>{credential.credential_info?.description || "-"}</TableCell>
                   <TableCell>
                     <Button
                       icon={PencilAltIcon}

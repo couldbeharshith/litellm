@@ -186,9 +186,6 @@ class TestListMCPServers:
             return_value=mock_servers_with_health
         )
 
-        for idx, server in enumerate(mock_servers_with_health):
-            server.credentials = {"auth_value": f"secret_{idx}"}
-
         with patch(
             "litellm.proxy.management_endpoints.mcp_management_endpoints.global_mcp_server_manager",
             mock_manager,
@@ -208,7 +205,6 @@ class TestListMCPServers:
 
             # Verify results
             assert len(result) == 2
-            assert all(server.credentials is None for server in result)
 
             # Check that both config servers are returned
             server_ids = [server.server_id for server in result]
@@ -319,9 +315,6 @@ class TestListMCPServers:
             return_value=mock_servers_with_health
         )
 
-        for idx, server in enumerate(mock_servers_with_health):
-            server.credentials = {"auth_value": f"secret_{idx}"}
-
         with patch(
             "litellm.proxy.management_endpoints.mcp_management_endpoints.global_mcp_server_manager",
             mock_manager,
@@ -341,7 +334,6 @@ class TestListMCPServers:
 
             # Verify results
             assert len(result) == 4
-            assert all(server.credentials is None for server in result)
 
             # Check that both DB and config servers are returned
             server_ids = [server.server_id for server in result]
@@ -436,9 +428,6 @@ class TestListMCPServers:
             return_value=mock_servers_with_health
         )
 
-        for idx, server in enumerate(mock_servers_with_health):
-            server.credentials = {"auth_value": f"secret_{idx}"}
-
         with patch(
             "litellm.proxy.management_endpoints.mcp_management_endpoints.global_mcp_server_manager",
             mock_manager,
@@ -458,7 +447,6 @@ class TestListMCPServers:
 
             # Verify results - should only return servers user has access to
             assert len(result) == 2
-            assert all(server.credentials is None for server in result)
 
             # Check that only allowed servers are returned
             server_ids = [server.server_id for server in result]
@@ -474,96 +462,6 @@ class TestListMCPServers:
                 elif server.server_id == "config_server_allowed":
                     assert server.alias == "Allowed Zapier MCP"
                     assert server.url == "https://actions.zapier.com/mcp/sse"
-
-
-    @pytest.mark.asyncio
-    async def test_fetch_single_mcp_server_redacts_credentials(self):
-        mock_server = generate_mock_mcp_server_db_record(
-            server_id="server-1", alias="Server 1"
-        )
-        mock_server.credentials = {"auth_value": "top-secret"}
-
-        mock_prisma_client = MagicMock()
-        mock_health_result = {
-            "status": "healthy",
-            "last_health_check": datetime.now().isoformat(),
-            "error": None,
-        }
-
-        mock_user_auth = generate_mock_user_api_key_auth(
-            user_role=LitellmUserRoles.PROXY_ADMIN
-        )
-
-        with patch(
-            "litellm.proxy.management_endpoints.mcp_management_endpoints.get_prisma_client_or_throw",
-            return_value=mock_prisma_client,
-        ), patch(
-            "litellm.proxy.management_endpoints.mcp_management_endpoints.get_mcp_server",
-            AsyncMock(return_value=mock_server),
-        ), patch(
-            "litellm.proxy.management_endpoints.mcp_management_endpoints.global_mcp_server_manager.health_check_server",
-            AsyncMock(return_value=mock_health_result),
-        ), patch(
-            "litellm.proxy.management_endpoints.mcp_management_endpoints._user_has_admin_view",
-            return_value=True,
-        ):
-            from litellm.proxy.management_endpoints.mcp_management_endpoints import (
-                fetch_mcp_server,
-            )
-
-            result = await fetch_mcp_server(
-                server_id="server-1", user_api_key_dict=mock_user_auth
-            )
-
-            assert result.server_id == "server-1"
-            assert result.credentials is None
-            assert mock_server.credentials == {"auth_value": "top-secret"}
-            assert result.status == "healthy"
-
-    @pytest.mark.asyncio
-    async def test_fetch_single_mcp_server_handles_missing_credentials_field(self):
-        mock_server = generate_mock_mcp_server_db_record(
-            server_id="server-2", alias="Server 2"
-        )
-        # Simulate ORM object without credentials attribute (e.g., older schema)
-        delattr(mock_server, "credentials")
-
-        mock_prisma_client = MagicMock()
-        mock_health_result = {
-            "status": "healthy",
-            "last_health_check": datetime.now().isoformat(),
-            "error": None,
-        }
-
-        mock_user_auth = generate_mock_user_api_key_auth(
-            user_role=LitellmUserRoles.PROXY_ADMIN
-        )
-
-        with patch(
-            "litellm.proxy.management_endpoints.mcp_management_endpoints.get_prisma_client_or_throw",
-            return_value=mock_prisma_client,
-        ), patch(
-            "litellm.proxy.management_endpoints.mcp_management_endpoints.get_mcp_server",
-            AsyncMock(return_value=mock_server),
-        ), patch(
-            "litellm.proxy.management_endpoints.mcp_management_endpoints.global_mcp_server_manager.health_check_server",
-            AsyncMock(return_value=mock_health_result),
-        ), patch(
-            "litellm.proxy.management_endpoints.mcp_management_endpoints._user_has_admin_view",
-            return_value=True,
-        ):
-            from litellm.proxy.management_endpoints.mcp_management_endpoints import (
-                fetch_mcp_server,
-            )
-
-            result = await fetch_mcp_server(
-                server_id="server-2", user_api_key_dict=mock_user_auth
-            )
-
-            assert result.server_id == "server-2"
-            # credentials attribute should still be absent and no exception raised
-            assert not hasattr(result, "credentials")
-            assert result.status == "healthy"
 
 
 class TestMCPHealthCheckEndpoints:
@@ -823,8 +721,6 @@ class TestMCPHealthCheckEndpoints:
             return_value=[mock_server]
         )
 
-        mock_server.credentials = {"auth_value": "secret"}
-
         mock_user_auth = generate_mock_user_api_key_auth(
             user_role=LitellmUserRoles.PROXY_ADMIN
         )
@@ -853,4 +749,3 @@ class TestMCPHealthCheckEndpoints:
             assert server.status == "healthy"
             assert server.last_health_check is not None
             assert server.health_check_error is None
-            assert server.credentials is None

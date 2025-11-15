@@ -2341,8 +2341,7 @@ def test_bedrock_custom_continue_message():
 
 def test_bedrock_no_default_message():
     """
-    Test that empty content is replaced with placeholder when modify_params=False.
-    AWS Bedrock doesn't allow empty or whitespace-only text content.
+    Test that empty content is handled correctly when modify_params=False
     """
     messages = [
         {"role": "user", "content": "Hello!"},
@@ -2358,13 +2357,15 @@ def test_bedrock_no_default_message():
         llm_provider="bedrock",
     )
 
-    # Verify empty message is replaced with placeholder and valid message remains
+    # Verify empty message is present and valid message remains
     assistant_messages = [
         msg for msg in formatted_messages if msg["role"] == "assistant"
     ]
-    assert len(assistant_messages) == 2
-    assert assistant_messages[0]["content"][0]["text"] == "."
-    assert assistant_messages[1]["content"][0]["text"] == "Valid response"
+    assert len(assistant_messages) == 2  # Both empty and valid messages present
+    assert assistant_messages[0]["content"][0]["text"] == ""  # First message is empty
+    assert (
+        assistant_messages[1]["content"][0]["text"] == "Valid response"
+    )  # Second message is valid
 
 
 @pytest.mark.parametrize("top_k_param", ["top_k", "topK"])

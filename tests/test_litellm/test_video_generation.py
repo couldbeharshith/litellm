@@ -14,7 +14,6 @@ import litellm
 from litellm.types.videos.main import VideoObject, VideoResponse
 from litellm.videos.main import video_generation, avideo_generation, video_status, avideo_status
 from litellm.llms.openai.videos.transformation import OpenAIVideoConfig
-from litellm.llms.custom_httpx.llm_http_handler import BaseLLMHTTPHandler
 from litellm.cost_calculator import default_video_cost_calculator
 from litellm.litellm_core_utils.litellm_logging import Logging as LitellmLogging
 from litellm.integrations.custom_logger import CustomLogger
@@ -151,10 +150,9 @@ class TestVideoGeneration:
         config = OpenAIVideoConfig()
         
         # Test request transformation
-        data, files, returned_api_base = config.transform_video_create_request(
+        data, files = config.transform_video_create_request(
             model="sora-2",
             prompt="Test video prompt",
-            api_base="https://api.openai.com/v1/videos",
             video_create_optional_request_params={
                 "seconds": "8",
                 "size": "720x1280"
@@ -168,7 +166,6 @@ class TestVideoGeneration:
         assert data["seconds"] == "8"
         assert data["size"] == "720x1280"
         assert files == []
-        assert returned_api_base == "https://api.openai.com/v1/videos"
 
     def test_video_generation_response_transformation(self):
         """Test video generation response transformation."""
@@ -231,10 +228,9 @@ class TestVideoGeneration:
         mock_file = MagicMock()
         mock_file.read.return_value = b"fake_image_data"
         
-        data, files, returned_api_base = config.transform_video_create_request(
+        data, files = config.transform_video_create_request(
             model="sora-2",
             prompt="Test video with image",
-            api_base="https://api.openai.com/v1/videos",
             video_create_optional_request_params={
                 "input_reference": mock_file,
                 "seconds": "8",
@@ -295,29 +291,42 @@ class TestVideoGeneration:
         assert mapped_params["user"] == "test-user"
 
     def test_video_generation_unsupported_parameters(self):
-        """Test video generation with provider-specific parameters via extra_body."""
+        """Test video generation with unsupported parameters."""
         from litellm.videos.utils import VideoGenerationRequestUtils
         
-        # Test that provider-specific parameters can be passed via extra_body
-        # This allows support for Vertex AI and Gemini specific parameters
-        result = VideoGenerationRequestUtils.get_optional_params_video_generation(
-            model="sora-2",
-            video_generation_provider_config=OpenAIVideoConfig(),
-            video_generation_optional_params={
-                "seconds": "8",
-                "extra_body": {
-                    "vertex_ai_param": "value",
-                    "gemini_param": "value2"
+        # Test unsupported parameter detection
+        with pytest.raises(litellm.UnsupportedParamsError):
+            VideoGenerationRequestUtils.get_optional_params_video_generation(
+                model="sora-2",
+                video_generation_provider_config=OpenAIVideoConfig(),
+                video_generation_optional_params={
+                    "unsupported_param": "value"
                 }
-            }
-        )
+            )
+
+    def test_video_generation_request_utils(self):
+        """Test video generation request utilities."""
+        from litellm.videos.utils import VideoGenerationRequestUtils
         
-        # extra_body params should be merged into the result
-        assert result["seconds"] == "8"
-        assert result["vertex_ai_param"] == "value"
-        assert result["gemini_param"] == "value2"
-        # extra_body itself should be removed from the result
-        assert "extra_body" not in result
+        # Test parameter filtering
+        params = {
+            "prompt": "Test video",
+            "model": "sora-2",
+            "seconds": "8",
+            "size": "720x1280",
+            "user": "test-user",
+            "invalid_param": "should_be_filtered"
+        }
+        
+        filtered_params = VideoGenerationRequestUtils.get_requested_video_generation_optional_param(params)
+        
+        # Should only contain valid parameters
+        assert "prompt" not in filtered_params  # prompt is required, not optional
+        assert "seconds" in filtered_params
+        assert "size" in filtered_params
+        assert "user" in filtered_params
+        assert "invalid_param" not in filtered_params
+        # Note: model is included in the filtered params as it's part of the TypedDict
 
     def test_video_generation_types(self):
         """Test video generation type definitions."""
@@ -485,6 +494,7 @@ class TestVideoGeneration:
         # Test request transformation
         url, data = config.transform_video_status_retrieve_request(
             video_id="video_123",
+            model="sora-2",
             api_base="https://api.openai.com/v1/videos",
             litellm_params=MagicMock(),
             headers={}
@@ -512,6 +522,7 @@ class TestVideoGeneration:
         }
         
         response = config.transform_video_status_retrieve_response(
+            model="sora-2",
             raw_response=mock_http_response,
             logging_obj=MagicMock()
         )
@@ -644,6 +655,7 @@ class TestVideoGeneration:
         for api_base, video_id, expected_url in test_cases:
             url, data = config.transform_video_status_retrieve_request(
                 video_id=video_id,
+                model="sora-2",
                 api_base=api_base,
                 litellm_params=MagicMock(),
                 headers={}
@@ -712,52 +724,6 @@ class TestVideoLogging:
             assert payload["response_cost"] is not None
             # Note: Cost calculation may not work in test environment due to mocking
             # The important thing is that the logging payload is created and recognized
-
-
-def test_openai_transform_video_content_request_empty_params():
-    """OpenAI content transform should return empty params to ensure GET is used."""
-    config = OpenAIVideoConfig()
-    url, params = config.transform_video_content_request(
-        video_id="video_123",
-        api_base="https://api.openai.com/v1/videos",
-        litellm_params={},
-        headers={},
-    )
-
-    assert url == "https://api.openai.com/v1/videos/video_123/content"
-    assert params == {}
-
-
-def test_video_content_handler_uses_get_for_openai():
-    """HTTP handler must use GET (not POST) for OpenAI content download."""
-    handler = BaseLLMHTTPHandler()
-    config = OpenAIVideoConfig()
-
-    mock_client = MagicMock()
-    mock_response = MagicMock()
-    mock_response.content = b"mp4-bytes"
-    mock_client.get.return_value = mock_response
-
-    with patch(
-        "litellm.llms.custom_httpx.llm_http_handler._get_httpx_client",
-        return_value=mock_client,
-    ):
-        result = handler.video_content_handler(
-            video_id="video_abc",
-            video_content_provider_config=config,
-            custom_llm_provider="openai",
-            litellm_params={"api_base": "https://api.openai.com/v1"},
-            logging_obj=MagicMock(),
-            timeout=5.0,
-            api_key="sk-test",
-            _is_async=False,
-        )
-
-    assert result == b"mp4-bytes"
-    mock_client.get.assert_called_once()
-    assert not mock_client.post.called
-    called_url = mock_client.get.call_args.kwargs["url"]
-    assert called_url == "https://api.openai.com/v1/videos/video_abc/content"
 
 
 if __name__ == "__main__":

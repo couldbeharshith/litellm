@@ -111,6 +111,7 @@ const CacheControlSettings: React.FC<CacheControlSettingsProps> = ({
                         type="number"
                         placeholder="Optional"
                         step={1}
+                        min={0}
                         onChange={() => {
                           const values = form.getFieldValue("cache_control_points");
                           updateCacheControlPoints(values);

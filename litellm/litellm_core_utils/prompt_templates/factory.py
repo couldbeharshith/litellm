@@ -1,5 +1,4 @@
 import copy
-import hashlib
 import json
 import mimetypes
 import re
@@ -1491,7 +1490,7 @@ def convert_to_anthropic_tool_invoke(
 
         _content_element = add_cache_control_to_content(
             anthropic_content_element=_anthropic_tool_use_param,
-            original_content_element=dict(tool),
+            orignal_content_element=dict(tool),
         )
 
         if "cache_control" in _content_element:
@@ -1513,9 +1512,9 @@ def add_cache_control_to_content(
         AnthropicMessagesToolUseParam,
         ChatCompletionThinkingBlock,
     ],
-    original_content_element: Union[dict, AllMessageValues],
+    orignal_content_element: Union[dict, AllMessageValues],
 ):
-    cache_control_param = original_content_element.get("cache_control")
+    cache_control_param = orignal_content_element.get("cache_control")
     if cache_control_param is not None and isinstance(cache_control_param, dict):
         transformed_param = ChatCompletionCachedContent(**cache_control_param)  # type: ignore
 
@@ -1728,7 +1727,7 @@ def anthropic_messages_pt(  # noqa: PLR0915
                             )
                             _content_element = add_cache_control_to_content(
                                 anthropic_content_element=_anthropic_content_element,
-                                original_content_element=dict(m),
+                                orignal_content_element=dict(m),
                             )
 
                             if "cache_control" in _content_element:
@@ -1746,7 +1745,7 @@ def anthropic_messages_pt(  # noqa: PLR0915
                             )
                             _content_element = add_cache_control_to_content(
                                 anthropic_content_element=_anthropic_text_content_element,
-                                original_content_element=dict(m),
+                                orignal_content_element=dict(m),
                             )
                             _content_element = cast(
                                 AnthropicMessagesTextParam, _content_element
@@ -1768,7 +1767,7 @@ def anthropic_messages_pt(  # noqa: PLR0915
                     }
                     _content_element = add_cache_control_to_content(
                         anthropic_content_element=_anthropic_content_text_element,
-                        original_content_element=dict(user_message_types_block),
+                        orignal_content_element=dict(user_message_types_block),
                     )
 
                     if "cache_control" in _content_element:
@@ -1826,7 +1825,7 @@ def anthropic_messages_pt(  # noqa: PLR0915
                         )
                         _cached_message = add_cache_control_to_content(
                             anthropic_content_element=anthropic_message,
-                            original_content_element=dict(m),
+                            orignal_content_element=dict(m),
                         )
 
                         assistant_content.append(
@@ -1846,7 +1845,7 @@ def anthropic_messages_pt(  # noqa: PLR0915
 
                 _content_element = add_cache_control_to_content(
                     anthropic_content_element=_anthropic_text_content_element,
-                    original_content_element=dict(assistant_content_block),
+                    orignal_content_element=dict(assistant_content_block),
                 )
 
                 if "cache_control" in _content_element:
@@ -2707,39 +2706,12 @@ class BedrockImageProcessor:
             for video_type in supported_video_formats
         )
 
-        HASH_SAMPLE_BYTES = 64 * 1024  # hash up to 64 KB of data
-
         if is_document:
-            # --- Prepare normalized bytes for hashing (without modifying original) ---
-            if isinstance(image_bytes, str):
-                # Remove whitespace/newlines so base64 variations hash identically
-                normalized = "".join(image_bytes.split()).encode("utf-8")
-            else:
-                normalized = image_bytes
-
-            # --- Use only the first 64 KB for speed ---
-            if len(normalized) <= HASH_SAMPLE_BYTES:
-                sample = normalized
-            else:
-                sample = normalized[:HASH_SAMPLE_BYTES]
-
-            # --- Compute deterministic hash (sample + total length) ---
-            hasher = hashlib.sha256()
-            hasher.update(sample)
-            hasher.update(
-                str(len(normalized)).encode("utf-8")
-            )  # include full length for uniqueness
-            full_hash = hasher.hexdigest()
-            content_hash = full_hash[:16]  # short deterministic ID
-
-            document_name = f"DocumentPDFmessages_{content_hash}_{image_format}"
-
-            # --- Return content block ---
             return BedrockContentBlock(
                 document=BedrockDocumentBlock(
                     source=_blob,
                     format=image_format,
-                    name=document_name,
+                    name=f"DocumentPDFmessages_{str(uuid.uuid4())}",
                 )
             )
         elif is_video:
@@ -3839,9 +3811,7 @@ def _bedrock_converse_messages_pt(  # noqa: PLR0915
                                 assistant_parts=assistants_parts,
                             )
                         elif element["type"] == "text":
-                            # AWS Bedrock doesn't allow empty or whitespace-only text content, so use placeholder for empty strings
-                            text_content = element["text"] if element["text"].strip() else "."
-                            assistants_part = BedrockContentBlock(text=text_content)
+                            assistants_part = BedrockContentBlock(text=element["text"])
                             assistants_parts.append(assistants_part)
                         elif element["type"] == "image_url":
                             if isinstance(element["image_url"], dict):
@@ -3865,9 +3835,7 @@ def _bedrock_converse_messages_pt(  # noqa: PLR0915
                             assistants_parts.append(_cache_point_block)
                 assistant_content.extend(assistants_parts)
             elif _assistant_content is not None and isinstance(_assistant_content, str):
-                # AWS Bedrock doesn't allow empty or whitespace-only text content, so use placeholder for empty strings
-                text_content = _assistant_content if _assistant_content.strip() else "."
-                assistant_content.append(BedrockContentBlock(text=text_content))
+                assistant_content.append(BedrockContentBlock(text=_assistant_content))
                 # Add cache point block for assistant string content
                 _cache_point_block = (
                     litellm.AmazonConverseConfig()._get_cache_point_block(

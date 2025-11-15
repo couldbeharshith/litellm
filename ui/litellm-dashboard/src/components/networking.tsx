@@ -145,25 +145,6 @@ export interface CredentialItem {
   };
 }
 
-export interface ProviderCredentialFieldMetadata {
-  key: string;
-  label: string;
-  placeholder?: string | null;
-  tooltip?: string | null;
-  required?: boolean;
-  field_type?: "text" | "password" | "select" | "upload";
-  options?: string[] | null;
-  default_value?: string | null;
-}
-
-export interface ProviderCreateInfo {
-  provider: string;
-  provider_display_name: string;
-  litellm_provider: string;
-  default_model_placeholder?: string | null;
-  credential_fields: ProviderCredentialFieldMetadata[];
-}
-
 export interface PublicModelHubInfo {
   docs_title: string;
   custom_docs_description: string | null;
@@ -199,26 +180,6 @@ const handleError = async (errorData: string) => {
   } else {
     console.log("Error suppressed to prevent spam:", errorData);
   }
-};
-
-export const getProviderCreateMetadata = async (): Promise<ProviderCreateInfo[]> => {
-  /**
-   * Fetch provider credential field metadata from the proxy's public endpoint.
-   * This is used by the UI to dynamically render provider-specific credential fields.
-   */
-  const url = defaultProxyBaseUrl ? `${defaultProxyBaseUrl}/public/providers/fields` : `/public/providers/fields`;
-  const response = await fetch(url, {
-    method: "GET",
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Failed to fetch provider create metadata:", response.status, errorText);
-    throw new Error("Failed to load provider configuration");
-  }
-
-  const jsonData: ProviderCreateInfo[] = await response.json();
-  return jsonData;
 };
 
 // Global variable for the header name
@@ -4483,7 +4444,9 @@ export const getGeneralSettingsCall = async (accessToken: string) => {
 
 export const getRouterSettingsCall = async (accessToken: string) => {
   try {
-    let url = proxyBaseUrl ? `${proxyBaseUrl}/router/settings` : `/router/settings`;
+    let url = proxyBaseUrl
+      ? `${proxyBaseUrl}/router/settings`
+      : `/router/settings`;
 
     const response = await fetch(url, {
       method: "GET",
@@ -4510,7 +4473,9 @@ export const getRouterSettingsCall = async (accessToken: string) => {
 
 export const getCacheSettingsCall = async (accessToken: string) => {
   try {
-    let url = proxyBaseUrl ? `${proxyBaseUrl}/cache/settings` : `/cache/settings`;
+    let url = proxyBaseUrl
+      ? `${proxyBaseUrl}/cache/settings`
+      : `/cache/settings`;
 
     const response = await fetch(url, {
       method: "GET",
@@ -4535,9 +4500,14 @@ export const getCacheSettingsCall = async (accessToken: string) => {
   }
 };
 
-export const testCacheConnectionCall = async (accessToken: string, cacheSettings: Record<string, any>) => {
+export const testCacheConnectionCall = async (
+  accessToken: string,
+  cacheSettings: Record<string, any>
+) => {
   try {
-    let url = proxyBaseUrl ? `${proxyBaseUrl}/cache/settings/test` : `/cache/settings/test`;
+    let url = proxyBaseUrl
+      ? `${proxyBaseUrl}/cache/settings/test`
+      : `/cache/settings/test`;
 
     const response = await fetch(url, {
       method: "POST",
@@ -4565,7 +4535,10 @@ export const testCacheConnectionCall = async (accessToken: string, cacheSettings
   }
 };
 
-export const updateCacheSettingsCall = async (accessToken: string, cacheSettings: Record<string, any>) => {
+export const updateCacheSettingsCall = async (
+  accessToken: string,
+  cacheSettings: Record<string, any>
+) => {
   try {
     let url = proxyBaseUrl ? `${proxyBaseUrl}/cache/settings` : `/cache/settings`;
 
@@ -5728,8 +5701,8 @@ export const deleteSearchTool = async (accessToken: string, searchToolId: string
 
 export const fetchAvailableSearchProviders = async (accessToken: string) => {
   try {
-    const url = proxyBaseUrl
-      ? `${proxyBaseUrl}/search_tools/ui/available_providers`
+    const url = proxyBaseUrl 
+      ? `${proxyBaseUrl}/search_tools/ui/available_providers` 
       : `/search_tools/ui/available_providers`;
     console.log("Fetching available search providers from:", url);
 
@@ -5757,9 +5730,14 @@ export const fetchAvailableSearchProviders = async (accessToken: string) => {
   }
 };
 
-export const testSearchToolConnection = async (accessToken: string, litellmParams: Record<string, any>) => {
+export const testSearchToolConnection = async (
+  accessToken: string,
+  litellmParams: Record<string, any>
+) => {
   try {
-    const url = proxyBaseUrl ? `${proxyBaseUrl}/search_tools/test_connection` : `/search_tools/test_connection`;
+    const url = proxyBaseUrl
+      ? `${proxyBaseUrl}/search_tools/test_connection`
+      : `/search_tools/test_connection`;
     console.log("Testing search tool connection:", url);
 
     const response = await fetch(url, {
@@ -5789,7 +5767,7 @@ export const testSearchToolConnection = async (accessToken: string, litellmParam
   }
 };
 
-export const listMCPTools = async (accessToken: string, serverId: string) => {
+export const listMCPTools = async (accessToken: string, serverId: string, authValue?: string, serverAlias?: string) => {
   try {
     // Construct base URL
     let url = proxyBaseUrl
@@ -5802,6 +5780,14 @@ export const listMCPTools = async (accessToken: string, serverId: string) => {
       [globalLitellmHeaderName]: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     };
+
+    // Use new server-specific auth header format if serverAlias is provided
+    if (serverAlias && authValue) {
+      headers[`x-mcp-${serverAlias}-authorization`] = authValue;
+    } else if (authValue) {
+      // Fall back to deprecated x-mcp-auth header for backward compatibility
+      headers[MCP_AUTH_HEADER] = authValue;
+    }
 
     const response = await fetch(url, {
       method: "GET",
@@ -5833,7 +5819,13 @@ export const listMCPTools = async (accessToken: string, serverId: string) => {
   }
 };
 
-export const callMCPTool = async (accessToken: string, toolName: string, toolArguments: Record<string, any>) => {
+export const callMCPTool = async (
+  accessToken: string,
+  toolName: string,
+  toolArguments: Record<string, any>,
+  authValue: string,
+  serverAlias?: string,
+) => {
   try {
     // Construct base URL
     let url = proxyBaseUrl ? `${proxyBaseUrl}/mcp-rest/tools/call` : `/mcp-rest/tools/call`;
@@ -5844,6 +5836,14 @@ export const callMCPTool = async (accessToken: string, toolName: string, toolArg
       [globalLitellmHeaderName]: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     };
+
+    // Use new server-specific auth header format if serverAlias is provided
+    if (serverAlias) {
+      headers[`x-mcp-${serverAlias}-authorization`] = authValue;
+    } else {
+      // Fall back to deprecated x-mcp-auth header for backward compatibility
+      headers[MCP_AUTH_HEADER] = authValue;
+    }
 
     const response = await fetch(url, {
       method: "POST",
@@ -6591,7 +6591,7 @@ export const applyGuardrail = async (
     if (!response.ok) {
       const errorData = await response.text();
       let errorMessage = "Failed to apply guardrail";
-
+      
       try {
         const errorJson = JSON.parse(errorData);
         if (errorJson.error?.message) {
@@ -6604,7 +6604,7 @@ export const applyGuardrail = async (
       } catch (e) {
         errorMessage = errorData || errorMessage;
       }
-
+      
       handleError(errorData);
       throw new Error(errorMessage);
     }
@@ -6614,36 +6614,6 @@ export const applyGuardrail = async (
     return data;
   } catch (error) {
     console.error("Failed to apply guardrail:", error);
-    throw error;
-  }
-};
-
-export const validateBlockedWordsFile = async (accessToken: string, fileContent: string) => {
-  try {
-    const url = proxyBaseUrl
-      ? `${proxyBaseUrl}/guardrails/validate_blocked_words_file`
-      : `/guardrails/validate_blocked_words_file`;
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        [globalLitellmHeaderName]: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ file_content: fileContent }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      handleError(errorData);
-      throw new Error("Failed to validate blocked words file");
-    }
-
-    const data = await response.json();
-    console.log("Validate blocked words file response:", data);
-    return data;
-  } catch (error) {
-    console.error("Failed to validate blocked words file:", error);
     throw error;
   }
 };
@@ -6697,22 +6667,9 @@ export const updateSSOSettings = async (accessToken: string, settings: Record<st
 
     if (!response.ok) {
       const errorData = await response.json();
-      const detailMessage =
-        typeof errorData?.detail === "object"
-          ? errorData.detail?.error || errorData.detail?.message
-          : errorData?.detail;
-      const errorMessage =
-        typeof detailMessage === "string" && detailMessage.length > 0 ? detailMessage : deriveErrorMessage(errorData);
-
+      const errorMessage = deriveErrorMessage(errorData);
       handleError(errorMessage);
-
-      const enhancedError = new Error(errorMessage);
-      if (errorData?.detail !== undefined) {
-        (enhancedError as any).detail = errorData.detail;
-      }
-      (enhancedError as any).rawError = errorData;
-
-      throw enhancedError;
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();

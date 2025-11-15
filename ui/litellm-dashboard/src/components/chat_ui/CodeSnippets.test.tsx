@@ -17,7 +17,6 @@ describe("CodeSnippets", () => {
       selectedGuardrails: [],
       selectedMCPTools: [],
       selectedSdk: "openai",
-      selectedVoice: "alloy",
     });
     expect(code).toContain("text-embedding-3-small");
     expect(code).toContain("Hello, world!");

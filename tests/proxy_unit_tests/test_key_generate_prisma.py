@@ -24,7 +24,6 @@ import sys
 import traceback
 from litellm._uuid import uuid
 from datetime import datetime, timezone
-from unittest import mock
 
 from dotenv import load_dotenv
 from fastapi import Request
@@ -666,8 +665,7 @@ def test_call_with_end_user_over_budget(prisma_client):
     except Exception as e:
         print(f"raised error: {e}, traceback: {traceback.format_exc()}")
         error_detail = e.message
-        assert "ExceededBudget: End User=" in error_detail
-        assert "over budget" in error_detail
+        assert "Budget has been exceeded! Current" in error_detail
         assert isinstance(e, ProxyException)
         assert e.type == ProxyErrorTypes.budget_exceeded
         print(vars(e))
@@ -1770,7 +1768,7 @@ def test_call_with_key_over_budget_no_cache(prisma_client):
     ],
 )
 @pytest.mark.flaky(retries=3, delay=2)
-async def test_async_call_with_key_over_model_budget(
+async def test_call_with_key_over_model_budget(
     prisma_client, request_model, should_pass
 ):
     # 12. Make a call with a key over budget, expect to fail
@@ -1843,38 +1841,7 @@ async def test_async_call_with_key_over_model_budget(
             },
         )
 
-        # Flush the logging worker to ensure all callbacks complete
-        from litellm.litellm_core_utils.logging_worker import GLOBAL_LOGGING_WORKER
-        
-        if GLOBAL_LOGGING_WORKER._queue is not None:
-            await GLOBAL_LOGGING_WORKER.flush()
-        
-        # Wait for the budget callback to complete with polling
-        max_wait_time = 10  # Maximum 10 seconds
-        poll_interval = 0.5  # Check every 0.5 seconds
-        waited = 0
-        budget_updated = False
-        
-        while waited < max_wait_time:
-            await asyncio.sleep(poll_interval)
-            waited += poll_interval
-            
-            # Check if budget has been updated by trying to get spend from cache
-            try:
-                # Try to access the budget limiter cache to see if spend was recorded
-                virtual_spend_key = f"virtual_key_spend:{hash_token(generated_key)}:{request_model}:86400"
-                cached_spend = await model_budget_limiter.dual_cache.async_get_cache(
-                    key=virtual_spend_key
-                )
-                if cached_spend is not None and float(cached_spend) > 0:
-                    budget_updated = True
-                    break
-            except Exception:
-                pass
-        
-        if not budget_updated:
-            # Fallback to original 2 second wait if we couldn't verify
-            await asyncio.sleep(max(0, 2 - waited))
+        await asyncio.sleep(2)
 
         # use generated key to auth in
         result = await user_api_key_auth(request=request, api_key=bearer_token)
@@ -3749,12 +3716,7 @@ async def test_user_api_key_auth_db_unavailable_not_allowed():
 
 
 @pytest.mark.asyncio
-@mock.patch("litellm.secret_managers.aws_secret_manager_v2.AWSSecretsManagerV2.async_write_secret")
-@mock.patch("litellm.secret_managers.aws_secret_manager_v2.AWSSecretsManagerV2.async_read_secret")
-@mock.patch("litellm.secret_managers.aws_secret_manager_v2.AWSSecretsManagerV2.async_delete_secret")
-async def test_key_generate_with_secret_manager_call(
-    mock_delete_secret, mock_read_secret, mock_write_secret, prisma_client
-):
+async def test_key_generate_with_secret_manager_call(prisma_client):
     """
     Generate a key
     assert it exists in the secret manager
@@ -3799,10 +3761,6 @@ async def test_key_generate_with_secret_manager_call(
     spend = 100
     max_budget = 400
     models = ["fake-openai-endpoint"]
-    
-    # Mock write_secret to return success
-    mock_write_secret.return_value = None
-    
     new_key = await generate_key_fn(
         data=GenerateKeyRequest(
             key_alias=key_alias, spend=spend, max_budget=max_budget, models=models
@@ -3820,8 +3778,6 @@ async def test_key_generate_with_secret_manager_call(
     await asyncio.sleep(2)
 
     # read from the secret manager
-    # Mock read_secret to return the generated key
-    mock_read_secret.return_value = generated_key
 
     result = await aws_secret_manager_client.async_read_secret(
         secret_name=f"{litellm._key_management_settings.prefix_for_stored_virtual_keys}{key_alias}"
@@ -3832,9 +3788,6 @@ async def test_key_generate_with_secret_manager_call(
     print(result)
     assert result == generated_key
 
-    # Mock delete_secret to return success
-    mock_delete_secret.return_value = None
-    
     # delete the key
     await delete_key_fn(
         data=KeyRequest(keys=[generated_key]),
@@ -3846,8 +3799,6 @@ async def test_key_generate_with_secret_manager_call(
     await asyncio.sleep(2)
 
     # Assert the key is deleted from the secret manager
-    # Mock read_secret to return None after deletion
-    mock_read_secret.return_value = None
 
     result = await aws_secret_manager_client.async_read_secret(
         secret_name=f"{litellm._key_management_settings.prefix_for_stored_virtual_keys}{key_alias}"

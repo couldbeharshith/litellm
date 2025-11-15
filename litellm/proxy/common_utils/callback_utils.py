@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Literal, Optional, Iterable
+from typing import Any, Dict, List, Literal, Optional
 
 import litellm
 from litellm import get_secret
@@ -382,8 +382,3 @@ def get_metadata_variable_name_from_kwargs(
         - LiteLLM is now moving to using `litellm_metadata` for our metadata
         """
         return "litellm_metadata" if "litellm_metadata" in kwargs else "metadata"
-
-def normalize_callback_names(callbacks: Iterable[Any]) -> List[Any]:
-    if callbacks is None:
-        return []
-    return [c.lower() if isinstance(c, str) else c for c in callbacks]

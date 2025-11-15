@@ -1,42 +1,40 @@
-import { InfoCircleOutlined } from "@ant-design/icons";
-import { ArrowLeftIcon, KeyIcon, RefreshIcon, TrashIcon } from "@heroicons/react/outline";
+import React, { useState, useEffect } from "react";
 import {
   Card,
-  Grid,
+  Title,
+  Text,
   Tab,
-  TabGroup,
   TabList,
+  TabGroup,
   TabPanel,
   TabPanels,
-  Text,
-  TextInput,
-  Title,
+  Grid,
   Button as TremorButton,
+  TextInput,
 } from "@tremor/react";
-import { Button, Form, Input, Modal, Select, Tooltip } from "antd";
-import { CheckIcon, CopyIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { copyToClipboard as utilCopyToClipboard } from "../utils/dataUtils";
-import { formItemValidateJSON, truncateString } from "../utils/textUtils";
-import CacheControlSettings from "./add_model/cache_control_settings";
-import EditAutoRouterModal from "./edit_auto_router/edit_auto_router_modal";
-import ReuseCredentialsModal from "./model_add/reuse_credentials";
-import NotificationsManager from "./molecules/notifications_manager";
+import NumericalInput from "./shared/numerical_input";
+import { ArrowLeftIcon, TrashIcon, KeyIcon } from "@heroicons/react/outline";
 import {
-  CredentialItem,
-  credentialCreateCall,
-  credentialGetCall,
-  getGuardrailsList,
   modelDeleteCall,
+  CredentialItem,
+  credentialGetCall,
+  credentialCreateCall,
   modelInfoV1Call,
   modelPatchUpdateCall,
+  getGuardrailsList,
   tagListCall,
-  testConnectionRequest,
 } from "./networking";
+import { Button, Form, Input, Select, Modal, Tooltip } from "antd";
+import { InfoCircleOutlined } from "@ant-design/icons";
 import { getProviderLogoAndName } from "./provider_info_helpers";
-import NumericalInput from "./shared/numerical_input";
-import { Tag } from "./tag_management/types";
 import { getDisplayModelName } from "./view_model/model_name_display";
+import ReuseCredentialsModal from "./model_add/reuse_credentials";
+import CacheControlSettings from "./add_model/cache_control_settings";
+import { CheckIcon, CopyIcon } from "lucide-react";
+import { copyToClipboard as utilCopyToClipboard } from "../utils/dataUtils";
+import EditAutoRouterModal from "./edit_auto_router/edit_auto_router_modal";
+import NotificationsManager from "./molecules/notifications_manager";
+import { Tag } from "./tag_management/types";
 
 interface ModelInfoViewProps {
   modelId: string;
@@ -178,19 +176,8 @@ export default function ModelInfoView({
 
       console.log("values.model_name, ", values.model_name);
 
-      // Parse LiteLLM extra params from JSON text area
-      let parsedExtraParams: Record<string, any> = {};
-      try {
-        parsedExtraParams = values.litellm_extra_params ? JSON.parse(values.litellm_extra_params) : {};
-      } catch (e) {
-        NotificationsManager.fromBackend("Invalid JSON in LiteLLM Params");
-        setIsSaving(false);
-        return;
-      }
-
       let updatedLitellmParams = {
-        ...values.litellm_params,
-        ...parsedExtraParams,
+        ...localModelData.litellm_params,
         model: values.litellm_model_name,
         api_base: values.api_base,
         custom_llm_provider: values.custom_llm_provider,
@@ -275,37 +262,6 @@ export default function ModelInfoView({
     );
   }
 
-  const handleTestConnection = async () => {
-    if (!accessToken) return;
-    try {
-      NotificationsManager.info("Testing connection...");
-      const response = await testConnectionRequest(
-        accessToken,
-        {
-          custom_llm_provider: localModelData.litellm_params.custom_llm_provider,
-          litellm_credential_name: localModelData.litellm_params.litellm_credential_name,
-          model: localModelData.litellm_model_name,
-        },
-        {
-          mode: localModelData.model_info?.mode,
-        },
-        localModelData.model_info?.mode,
-      );
-
-      if (response.status === "success") {
-        NotificationsManager.success("Connection test successful!");
-      } else {
-        throw new Error(response?.result?.error || response?.message || "Unknown error");
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        NotificationsManager.error("Error testing connection: " + truncateString(error.message, 100));
-      } else {
-        NotificationsManager.error("Error testing connection: " + String(error));
-      }
-    }
-  };
-
   const handleDelete = async () => {
     try {
       if (!accessToken) return;
@@ -367,36 +323,26 @@ export default function ModelInfoView({
           </div>
         </div>
         <div className="flex gap-2">
-          <TremorButton
-            variant="secondary"
-            icon={RefreshIcon}
-            onClick={handleTestConnection}
-            className="flex items-center gap-2"
-            data-testid="test-connection-button"
-          >
-            Test Connection
-          </TremorButton>
-
-          <TremorButton
-            icon={KeyIcon}
-            variant="secondary"
-            onClick={() => setIsCredentialModalOpen(true)}
-            className="flex items-center"
-            disabled={!isAdmin}
-            data-testid="reuse-credentials-button"
-          >
-            Re-use Credentials
-          </TremorButton>
-          <TremorButton
-            icon={TrashIcon}
-            variant="secondary"
-            onClick={() => setIsDeleteModalOpen(true)}
-            className="flex items-center text-red-500 border-red-500"
-            disabled={!canEditModel}
-            data-testid="delete-model-button"
-          >
-            Delete Model
-          </TremorButton>
+          {isAdmin && (
+            <TremorButton
+              icon={KeyIcon}
+              variant="secondary"
+              onClick={() => setIsCredentialModalOpen(true)}
+              className="flex items-center"
+            >
+              Re-use Credentials
+            </TremorButton>
+          )}
+          {canEditModel && (
+            <TremorButton
+              icon={TrashIcon}
+              variant="secondary"
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="flex items-center"
+            >
+              Delete Model
+            </TremorButton>
+          )}
         </div>
       </div>
 
@@ -419,20 +365,15 @@ export default function ModelInfoView({
                       alt={`${modelData.provider} logo`}
                       className="w-4 h-4"
                       onError={(e) => {
-                        const target = e.currentTarget as HTMLImageElement;
+                        // Create a div with provider initial as fallback
+                        const target = e.target as HTMLImageElement;
                         const parent = target.parentElement;
-                        if (!parent || !parent.contains(target)) {
-                          return;
-                        }
-
-                        try {
+                        if (parent) {
                           const fallbackDiv = document.createElement("div");
                           fallbackDiv.className =
                             "w-4 h-4 rounded-full bg-gray-200 flex items-center justify-center text-xs";
                           fallbackDiv.textContent = modelData.provider?.charAt(0) || "-";
                           parent.replaceChild(fallbackDiv, target);
-                        } catch (error) {
-                          console.error("Failed to replace provider logo fallback:", error);
                         }
                       }}
                     />
@@ -498,14 +439,22 @@ export default function ModelInfoView({
                 <Title>Model Settings</Title>
                 <div className="flex gap-2">
                   {isAutoRouter && canEditModel && !isEditing && (
-                    <TremorButton onClick={() => setIsAutoRouterModalOpen(true)} className="flex items-center">
+                    <TremorButton
+                      variant="primary"
+                      onClick={() => setIsAutoRouterModalOpen(true)}
+                      className="flex items-center"
+                    >
                       Edit Auto Router
                     </TremorButton>
                   )}
                   {canEditModel ? (
                     !isEditing && (
-                      <TremorButton onClick={() => setIsEditing(true)} className="flex items-center">
-                        Edit Settings
+                      <TremorButton
+                        variant="secondary"
+                        onClick={() => setIsEditing(true)}
+                        className="flex items-center"
+                      >
+                        Edit Model
                       </TremorButton>
                     )
                   ) : (
@@ -545,7 +494,6 @@ export default function ModelInfoView({
                       ? localModelData.litellm_params.guardrails
                       : [],
                     tags: Array.isArray(localModelData.litellm_params?.tags) ? localModelData.litellm_params.tags : [],
-                    litellm_extra_params: JSON.stringify(localModelData.litellm_params || {}, null, 2),
                   }}
                   layout="vertical"
                   onValuesChange={() => setIsDirty(true)}
@@ -914,39 +862,6 @@ export default function ModelInfoView({
                           <div className="mt-1 p-2 bg-gray-50 rounded">
                             <pre className="bg-gray-100 p-2 rounded text-xs overflow-auto mt-1">
                               {JSON.stringify(localModelData.model_info, null, 2)}
-                            </pre>
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <Text className="font-medium">
-                          LiteLLM Params
-                          <Tooltip title="Optional litellm params used for making a litellm.completion() call. Some params are automatically added by LiteLLM.">
-                            <a
-                              href="https://docs.litellm.ai/docs/completion/input"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <InfoCircleOutlined style={{ marginLeft: "4px" }} />
-                            </a>
-                          </Tooltip>
-                        </Text>
-                        {isEditing ? (
-                          <Form.Item name="litellm_extra_params" rules={[{ validator: formItemValidateJSON }]}>
-                            <Input.TextArea
-                              rows={4}
-                              placeholder='{
-                  "rpm": 100,
-                  "timeout": 0,
-                  "stream_timeout": 0
-                }'
-                            />
-                          </Form.Item>
-                        ) : (
-                          <div className="mt-1 p-2 bg-gray-50 rounded">
-                            <pre className="bg-gray-100 p-2 rounded text-xs overflow-auto mt-1">
-                              {JSON.stringify(localModelData.litellm_params, null, 2)}
                             </pre>
                           </div>
                         )}

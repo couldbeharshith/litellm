@@ -292,7 +292,6 @@ class ProxyBaseLLMRequestProcessing:
         proxy_config: ProxyConfig,
         route_type: Literal[
             "acompletion",
-            "aembedding",
             "aresponses",
             "_arealtime",
             "aget_responses",
@@ -322,10 +321,6 @@ class ProxyBaseLLMRequestProcessing:
             "avideo_status",
             "avideo_content",
             "avideo_remix",
-            "acreate_container",
-            "alist_containers",
-            "aretrieve_container",
-            "adelete_container",
         ],
         version: Optional[str] = None,
         user_model: Optional[str] = None,
@@ -404,7 +399,6 @@ class ProxyBaseLLMRequestProcessing:
         user_api_key_dict: UserAPIKeyAuth,
         route_type: Literal[
             "acompletion",
-            "aembedding",
             "aresponses",
             "_arealtime",
             "aget_responses",
@@ -425,10 +419,6 @@ class ProxyBaseLLMRequestProcessing:
             "avideo_status",
             "avideo_content",
             "avideo_remix",
-            "acreate_container",
-            "alist_containers",
-            "aretrieve_container",
-            "adelete_container",
         ],
         proxy_logging_obj: ProxyLogging,
         general_settings: dict,
@@ -748,7 +738,6 @@ class ProxyBaseLLMRequestProcessing:
                 type=getattr(e, "type", "None"),
                 param=getattr(e, "param", "None"),
                 code=getattr(e, "status_code", status.HTTP_400_BAD_REQUEST),
-                provider_specific_fields=getattr(e, "provider_specific_fields", None),
                 headers=headers,
             )
         elif isinstance(e, httpx.HTTPStatusError):
@@ -768,18 +757,15 @@ class ProxyBaseLLMRequestProcessing:
             param=getattr(e, "param", "None"),
             openai_code=getattr(e, "code", None),
             code=getattr(e, "status_code", 500),
-            provider_specific_fields=getattr(e, "provider_specific_fields", None),
             headers=headers,
         )
 
     @staticmethod
     def _get_pre_call_type(
-        route_type: Literal["acompletion", "aembedding", "aresponses"],
-    ) -> Literal["completion", "embeddings", "responses"]:
+        route_type: Literal["acompletion", "aresponses"],
+    ) -> Literal["completion", "responses"]:
         if route_type == "acompletion":
             return "completion"
-        elif route_type == "aembedding":
-            return "embeddings"
         elif route_type == "aresponses":
             return "responses"
 

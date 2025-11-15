@@ -512,7 +512,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 }}
               >
                 <div>
-                  <Button style={{ width: "150px" }} onClick={() => setIsAddSSOModalVisible(true)}>
+                  <Button
+                    style={{ width: "150px" }}
+                    onClick={() =>
+                      setIsAddSSOModalVisible(true)
+                    }
+                  >
                     {ssoConfigured ? "Edit SSO Settings" : "Add SSO"}
                   </Button>
                 </div>

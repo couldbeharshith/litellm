@@ -188,15 +188,9 @@ class ResponsesAPIStreamingIterator(BaseResponsesAPIStreamingIterator):
 
     def _handle_logging_completed_response(self):
         """Handle logging for completed responses in async context"""
-        # Create a deep copy for logging to avoid modifying the response object that will be returned to the user
-        # The logging handlers may transform usage from Responses API format (input_tokens/output_tokens) 
-        # to chat completion format (prompt_tokens/completion_tokens) for internal logging
-        import copy
-        logging_response = copy.deepcopy(self.completed_response)
-        
         asyncio.create_task(
             self.logging_obj.async_success_handler(
-                result=logging_response,
+                result=self.completed_response,
                 start_time=self.start_time,
                 end_time=datetime.now(),
                 cache_hit=None,
@@ -205,7 +199,7 @@ class ResponsesAPIStreamingIterator(BaseResponsesAPIStreamingIterator):
 
         executor.submit(
             self.logging_obj.success_handler,
-            result=logging_response,
+            result=self.completed_response,
             cache_hit=None,
             start_time=self.start_time,
             end_time=datetime.now(),
@@ -264,15 +258,9 @@ class SyncResponsesAPIStreamingIterator(BaseResponsesAPIStreamingIterator):
 
     def _handle_logging_completed_response(self):
         """Handle logging for completed responses in sync context"""
-        # Create a deep copy for logging to avoid modifying the response object that will be returned to the user
-        # The logging handlers may transform usage from Responses API format (input_tokens/output_tokens) 
-        # to chat completion format (prompt_tokens/completion_tokens) for internal logging
-        import copy
-        logging_response = copy.deepcopy(self.completed_response)
-        
         run_async_function(
             async_function=self.logging_obj.async_success_handler,
-            result=logging_response,
+            result=self.completed_response,
             start_time=self.start_time,
             end_time=datetime.now(),
             cache_hit=None,
@@ -280,7 +268,7 @@ class SyncResponsesAPIStreamingIterator(BaseResponsesAPIStreamingIterator):
 
         executor.submit(
             self.logging_obj.success_handler,
-            result=logging_response,
+            result=self.completed_response,
             cache_hit=None,
             start_time=self.start_time,
             end_time=datetime.now(),
@@ -336,22 +324,6 @@ class MockResponsesAPIStreamingIterator(BaseResponsesAPIStreamingIterator):
             )
             for i in range(0, len(full_text), self.CHUNK_SIZE)
         ]
-
-        # Add cost to usage object if include_cost_in_streaming_usage is True
-        if litellm.include_cost_in_streaming_usage and logging_obj is not None:
-            usage_obj: Optional[ResponseAPIUsage] = getattr(
-                transformed, "usage", None
-            )
-            if usage_obj is not None:
-                try:
-                    cost: Optional[float] = logging_obj._response_cost_calculator(
-                        result=transformed
-                    )
-                    if cost is not None:
-                        setattr(usage_obj, "cost", cost)
-                except Exception:
-                    # If cost calculation fails, continue without cost
-                    pass
 
         # append the completed event
         self._events = deltas + [

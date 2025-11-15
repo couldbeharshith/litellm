@@ -107,26 +107,6 @@ For stdio MCP servers, select "Standard Input/Output (stdio)" as the transport t
   style={{width: '80%', display: 'block', margin: '0'}}
 />
 
-<br/>
-<br/>
-
-### Static Headers
-
-Sometimes your MCP server needs specific headers on every request. Maybe it's an API key, maybe it's a custom header the server expects. Instead of configuring auth, you can just set them directly.
-
-<Image 
-  img={require('../img/static_headers.png')}
-  style={{width: '80%', display: 'block', margin: '0'}}
-/>
-
-These headers get sent with every request to the server. That's it.
-
-
-**When to use this:**
-- Your server needs custom headers that don't fit the standard auth patterns
-- You want full control over exactly what headers are sent
-- You're debugging and need to quickly add headers without changing auth configuration
-
 </TabItem>
 
 <TabItem value="config" label="config.yaml">
@@ -195,7 +175,6 @@ mcp_servers:
   | `authorization` | `Authorization: <auth_value>` |
 
 - **Extra Headers**: Optional list of additional header names that should be forwarded from client to the MCP server
-- **Static Headers**: Optional map of header key/value pairs to include every request to the MCP server.
 - **Spec Version**: Optional MCP specification version (defaults to `2025-06-18`)
 
 Examples for each auth type:
@@ -211,12 +190,11 @@ mcp_servers:
   oauth2_example:
     url: "https://my-mcp-server.com/mcp"
     auth_type: "oauth2"         # 👈 KEY CHANGE
-    authorization_url: "https://my-mcp-server.com/oauth/authorize" # optional override
-    token_url: "https://my-mcp-server.com/oauth/token"             # optional override
-    registration_url: "https://my-mcp-server.com/oauth/register"   # optional override
+    authorization_url: "https://my-mcp-server.com/oauth/authorize" # optional for client-credentials
+    token_url: "https://my-mcp-server.com/oauth/token"             # required
     client_id: os.environ/OAUTH_CLIENT_ID
     client_secret: os.environ/OAUTH_CLIENT_SECRET
-    scopes: ["tool.read", "tool.write"] # optional override
+    scopes: ["tool.read", "tool.write"] # optional
 
   bearer_example:
     url: "https://my-mcp-server.com/mcp"
@@ -239,14 +217,27 @@ mcp_servers:
     auth_type: "bearer_token"
     auth_value: "ghp_example_token"
     extra_headers: ["custom_key", "x-custom-header"]  # These headers will be forwarded from client
+```
 
-  # Example with static headers
+### Static Headers
+
+Sometimes your MCP server needs specific headers on every request. Maybe it's an API key, maybe it's a custom header the server expects. Instead of configuring auth, you can just set them directly.
+
+```yaml title="config.yaml" showLineNumbers
+mcp_servers:
   my_mcp_server:
     url: "https://my-mcp-server.com/mcp"
-    static_headers: # These headers will be requested to the MCP server
+    static_headers:
       X-API-Key: "abc123"
       X-Custom-Header: "some-value"
 ```
+
+These headers get sent with every request to the server. That's it.
+
+**When to use this:**
+- Your server needs custom headers that don't fit the standard auth patterns
+- You want full control over exactly what headers are sent
+- You're debugging and need to quickly add headers without changing auth configuration
 
 ### MCP Aliases
 
@@ -326,10 +317,6 @@ mcp_servers:
 | `spec_path` | Yes | Path or URL to your OpenAPI specification file (JSON or YAML) |
 | `auth_type` | No | Authentication type: `none`, `api_key`, `bearer_token`, `basic`, `authorization` |
 | `auth_value` | No | Authentication value (required if `auth_type` is set) |
-| `authorization_url` | No | For `auth_type: oauth2`. Optional override; if omitted LiteLLM auto-discovers it. |
-| `token_url` | No | For `auth_type: oauth2`. Optional override; if omitted LiteLLM auto-discovers it. |
-| `registration_url` | No | For `auth_type: oauth2`. Optional override; if omitted LiteLLM auto-discovers it. |
-| `scopes` | No | For `auth_type: oauth2`. Optional override; if omitted LiteLLM uses the scopes advertised by the server. |
 | `description` | No | Optional description for the MCP server |
 | `allowed_tools` | No | List of specific tools to allow (see [MCP Tool Filtering](#mcp-tool-filtering)) |
 | `disallowed_tools` | No | List of specific tools to block (see [MCP Tool Filtering](#mcp-tool-filtering)) |
@@ -1229,9 +1216,16 @@ mcp_servers:
   github_mcp:
     url: "https://api.githubcopilot.com/mcp"
     auth_type: oauth2
+    authorization_url: https://github.com/login/oauth/authorize
+    token_url: https://github.com/login/oauth/access_token
     client_id: os.environ/GITHUB_OAUTH_CLIENT_ID
     client_secret: os.environ/GITHUB_OAUTH_CLIENT_SECRET
+    scopes: ["public_repo", "user:email"]
 ```
+
+**Note**  
+In the future, users will only need to specify the `url` of the MCP server.
+LiteLLM will automatically resolve the corresponding `authorization_url`, `token_url`, and `registration_url` based on the MCP server metadata (e.g., `.well-known/oauth-authorization-server` or `oauth-protected-resource`).
 
 [**See Claude Code Tutorial**](./tutorials/claude_responses_api#connecting-mcp-servers)
 

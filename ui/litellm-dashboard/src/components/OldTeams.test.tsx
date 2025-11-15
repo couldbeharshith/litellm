@@ -1,7 +1,5 @@
-import { act, fireEvent, render } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { teamCreateCall } from "./networking";
-import OldTeams from "./OldTeams";
 
 vi.mock("./networking", () => ({
   teamCreateCall: vi.fn(),
@@ -128,7 +126,7 @@ describe("OldTeams - handleCreate organization handling", () => {
 
     // Verify we're not sending an empty string
     expect(formValues.organization_id).not.toBe("");
-
+    
     // Verify it's explicitly null, not undefined
     expect(formValues.organization_id).toBeNull();
   });
@@ -191,10 +189,9 @@ describe("OldTeams - handleCreate organization handling", () => {
     };
 
     // For org admins, organization_id should be required
-    const hasOrganization =
-      formValues.organization_id !== undefined &&
-      formValues.organization_id !== null &&
-      formValues.organization_id !== "";
+    const hasOrganization = formValues.organization_id !== undefined && 
+                           formValues.organization_id !== null && 
+                           formValues.organization_id !== "";
 
     if (isOrgAdmin && !hasOrganization) {
       // This should trigger validation error
@@ -225,7 +222,7 @@ describe("OldTeams - handleCreate organization handling", () => {
 
     // Type check: organization_id should never be an array
     expect(Array.isArray(invalidFormValues.organization_id)).toBe(true);
-
+    
     // Correct it to null
     if (Array.isArray(invalidFormValues.organization_id)) {
       invalidFormValues.organization_id = null;
@@ -233,40 +230,6 @@ describe("OldTeams - handleCreate organization handling", () => {
 
     expect(invalidFormValues.organization_id).toBeNull();
     expect(Array.isArray(invalidFormValues.organization_id)).toBe(false);
-  });
-
-  it("should clear the delete modal when the cancel button is clicked", async () => {
-    const { getByRole, getByTestId } = render(
-      <OldTeams
-        teams={[
-          {
-            team_id: "1",
-            team_alias: "Test Team",
-            organization_id: "org-123",
-            models: ["gpt-4"],
-            max_budget: 100,
-            budget_duration: "1d",
-            tpm_limit: 1000,
-            rpm_limit: 1000,
-            created_at: new Date().toISOString(),
-            keys: [],
-            members_with_roles: [],
-          },
-        ]}
-        searchParams={{}}
-        accessToken="test-token"
-        setTeams={vi.fn()}
-        userID="user-123"
-        userRole="Admin"
-        organizations={[]}
-      />,
-    );
-    const deleteTeamButton = getByTestId("delete-team-button");
-    act(() => {
-      fireEvent.click(deleteTeamButton);
-    });
-    expect(getByRole("heading", { name: "Delete Team" })).toBeInTheDocument();
-    expect(getByRole("button", { name: "Cancel" })).toBeInTheDocument();
   });
 });
 
@@ -304,25 +267,33 @@ describe("OldTeams - helper functions", () => {
           organization_id: "org-1",
           organization_alias: "Org 1",
           models: [],
-          members: [{ user_id: "user-123", user_role: "org_admin" }],
+          members: [
+            { user_id: "user-123", user_role: "org_admin" },
+          ],
         },
         {
           organization_id: "org-2",
           organization_alias: "Org 2",
           models: [],
-          members: [{ user_id: "user-456", user_role: "org_admin" }],
+          members: [
+            { user_id: "user-456", user_role: "org_admin" },
+          ],
         },
         {
           organization_id: "org-3",
           organization_alias: "Org 3",
           models: [],
-          members: [{ user_id: "user-123", user_role: "member" }],
+          members: [
+            { user_id: "user-123", user_role: "member" },
+          ],
         },
       ];
 
       // Simulate getAdminOrganizations logic
       const result = organizations.filter((org) =>
-        org.members?.some((member) => member.user_id === userID && member.user_role === "org_admin"),
+        org.members?.some(
+          (member) => member.user_id === userID && member.user_role === "org_admin"
+        )
       );
 
       expect(result.length).toBe(1);
@@ -336,13 +307,17 @@ describe("OldTeams - helper functions", () => {
           organization_id: "org-1",
           organization_alias: "Org 1",
           models: [],
-          members: [{ user_id: "user-123", user_role: "org_admin" }],
+          members: [
+            { user_id: "user-123", user_role: "org_admin" },
+          ],
         },
       ];
 
       // Simulate getAdminOrganizations logic
       const result = organizations.filter((org) =>
-        org.members?.some((member) => member.user_id === userID && member.user_role === "org_admin"),
+        org.members?.some(
+          (member) => member.user_id === userID && member.user_role === "org_admin"
+        )
       );
 
       expect(result.length).toBe(0);
@@ -363,12 +338,16 @@ describe("OldTeams - helper functions", () => {
           organization_id: "org-1",
           organization_alias: "Org 1",
           models: [],
-          members: [{ user_id: "user-123", user_role: "org_admin" }],
+          members: [
+            { user_id: "user-123", user_role: "org_admin" },
+          ],
         },
       ];
 
       const result = organizations.some((org) =>
-        org.members?.some((member) => member.user_id === userID && member.user_role === "org_admin"),
+        org.members?.some(
+          (member) => member.user_id === userID && member.user_role === "org_admin"
+        )
       );
 
       expect(result).toBe(true);
@@ -382,16 +361,21 @@ describe("OldTeams - helper functions", () => {
           organization_id: "org-1",
           organization_alias: "Org 1",
           models: [],
-          members: [{ user_id: "user-123", user_role: "member" }],
+          members: [
+            { user_id: "user-123", user_role: "member" },
+          ],
         },
       ];
 
       const isAdmin = userRole === "Admin";
       const isOrgAdmin = organizations.some((org) =>
-        org.members?.some((member) => member.user_id === userID && member.user_role === "org_admin"),
+        org.members?.some(
+          (member) => member.user_id === userID && member.user_role === "org_admin"
+        )
       );
 
       expect(isAdmin || isOrgAdmin).toBe(false);
     });
   });
 });
+

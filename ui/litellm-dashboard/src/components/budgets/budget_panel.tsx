@@ -3,31 +3,33 @@
  *
  */
 
-import { PencilAltIcon, TrashIcon } from "@heroicons/react/outline";
+import React, { useState, useEffect } from "react";
+import BudgetModal from "./budget_modal";
+import EditBudgetModal from "./edit_budget_modal";
 import {
-  Button,
-  Card,
-  Icon,
-  Tab,
-  TabGroup,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeaderCell,
   TableRow,
+  Card,
+  Button,
+  Icon,
+  Text,
+  Tab,
+  TabGroup,
   TabList,
   TabPanel,
   TabPanels,
-  Text,
 } from "@tremor/react";
-import { Modal } from "antd";
-import React, { useEffect, useState } from "react";
+import {
+  PencilAltIcon,
+  TrashIcon,
+} from "@heroicons/react/outline";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { getBudgetList, budgetDeleteCall } from "../networking";
 import NotificationsManager from "../molecules/notifications_manager";
-import { budgetDeleteCall, getBudgetList } from "../networking";
-import BudgetModal from "./budget_modal";
-import EditBudgetModal from "./edit_budget_modal";
 
 interface BudgetSettingsPageProps {
   accessToken: string | null;
@@ -42,12 +44,10 @@ export interface budgetItem {
 }
 
 const BudgetPanel: React.FC<BudgetSettingsPageProps> = ({ accessToken }) => {
-  const [isCreateModelVisible, setIsCreateModelVisible] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<budgetItem | null>(null);
   const [budgetList, setBudgetList] = useState<budgetItem[]>([]);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   useEffect(() => {
     if (!accessToken) {
       return;
@@ -57,44 +57,33 @@ const BudgetPanel: React.FC<BudgetSettingsPageProps> = ({ accessToken }) => {
     });
   }, [accessToken]);
 
-  const handleEditCall = async (budget: budgetItem) => {
+  const handleEditCall = async (budget_id: string, index: number) => {
+    console.log("budget_id", budget_id);
     if (accessToken == null) {
       return;
     }
+    // Find the budget first
+    const budget = budgetList.find((budget) => budget.budget_id === budget_id) || null;
+
+    // Update state and show modal after state is updated
     setSelectedBudget(budget);
     setIsEditModalVisible(true);
   };
 
-  const handleDeleteClick = (budget: budgetItem) => {
-    setSelectedBudget(budget);
-    setIsDeleteModalVisible(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!selectedBudget || accessToken == null) {
+  const handleDeleteCall = async (budget_id: string, index: number) => {
+    if (accessToken == null) {
       return;
     }
-    setIsDeleting(true);
-    try {
-      await budgetDeleteCall(accessToken, selectedBudget.budget_id);
-      NotificationsManager.success("Budget deleted.");
-      await handleUpdateCall();
-    } catch (error) {
-      console.error("Error deleting budget:", error);
-      if (typeof NotificationsManager.fromBackend === "function") {
-        NotificationsManager.fromBackend("Failed to delete budget");
-      } else {
-        NotificationsManager.info("Failed to delete budget");
-      }
-    } finally {
-      setIsDeleting(false);
-      setIsDeleteModalVisible(false);
-      setSelectedBudget(null);
-    }
-  };
 
-  const handleDeleteCancel = () => {
-    setIsDeleteModalVisible(false);
+    NotificationsManager.info("Request made");
+
+    await budgetDeleteCall(accessToken, budget_id);
+
+    const newBudgetList = [...budgetList];
+    newBudgetList.splice(index, 1);
+    setBudgetList(newBudgetList);
+
+    NotificationsManager.success("Budget Deleted.");
   };
 
   const handleUpdateCall = async () => {
@@ -108,13 +97,13 @@ const BudgetPanel: React.FC<BudgetSettingsPageProps> = ({ accessToken }) => {
 
   return (
     <div className="w-full mx-auto flex-auto overflow-y-auto m-8 p-2">
-      <Button size="sm" variant="primary" className="mb-2" onClick={() => setIsCreateModelVisible(true)}>
+      <Button size="sm" variant="primary" className="mb-2" onClick={() => setIsModalVisible(true)}>
         + Create Budget
       </Button>
       <BudgetModal
         accessToken={accessToken}
-        isModalVisible={isCreateModelVisible}
-        setIsModalVisible={setIsCreateModelVisible}
+        isModalVisible={isModalVisible}
+        setIsModalVisible={setIsModalVisible}
         setBudgetList={setBudgetList}
       />
       {selectedBudget && (
@@ -149,37 +138,13 @@ const BudgetPanel: React.FC<BudgetSettingsPageProps> = ({ accessToken }) => {
                   <TableCell>{value.max_budget ? value.max_budget : "n/a"}</TableCell>
                   <TableCell>{value.tpm_limit ? value.tpm_limit : "n/a"}</TableCell>
                   <TableCell>{value.rpm_limit ? value.rpm_limit : "n/a"}</TableCell>
-                  <Icon
-                    icon={PencilAltIcon}
-                    size="sm"
-                    className="cursor-pointer"
-                    onClick={() => handleEditCall(value)}
-                  />
-                  <Icon
-                    icon={TrashIcon}
-                    size="sm"
-                    className="cursor-pointer hover:text-red-500"
-                    onClick={() => handleDeleteClick(value)}
-                  />
+                  <Icon icon={PencilAltIcon} size="sm" onClick={() => handleEditCall(value.budget_id, index)} />
+                  <Icon icon={TrashIcon} size="sm" onClick={() => handleDeleteCall(value.budget_id, index)} />
                 </TableRow>
               ))}
           </TableBody>
         </Table>
       </Card>
-      {isDeleteModalVisible && (
-        <Modal
-          title="Delete Budget"
-          open={isDeleteModalVisible}
-          onOk={handleDeleteConfirm}
-          onCancel={handleDeleteCancel}
-          confirmLoading={isDeleting}
-          okText="Delete"
-          okButtonProps={{ danger: true }}
-        >
-          <p>Are you sure you want to delete budget: {selectedBudget?.budget_id} ?</p>
-          <p>This action cannot be undone.</p>
-        </Modal>
-      )}
       <div className="mt-5">
         <Text className="text-base">How to use budget id</Text>
         <TabGroup>
